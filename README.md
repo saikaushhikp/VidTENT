@@ -1,2 +1,2 @@
 # VidTENT
-Video Adaptation for TENT method for T
+Video Adaptation for TENT method for TTA
