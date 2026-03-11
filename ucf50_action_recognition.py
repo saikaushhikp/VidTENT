@@ -482,6 +482,7 @@ def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
     total_loss, correct, total = 0.0, 0, 0
     t0 = time.time()
     for step, (clips, labels) in enumerate(loader):
+        print(f"  [Epoch {epoch}] Step {step+1}/{len(loader)} ...", end="\r")
         clips, labels = clips.to(device), labels.to(device)
         optimizer.zero_grad()
         logits = model(clips)
