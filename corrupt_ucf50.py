@@ -454,9 +454,20 @@ def _parse_args() -> argparse.Namespace:
         help='Base random seed for reproducibility (default: 42)',
     )
     parser.add_argument(
-        '--mixed', action='store_true',
-        help='Mixed mode: apply one random corruption per video and save to a single folder.',
+    '--mixed', action='store_true',
+    help='Mixed mode: apply one random corruption per video and save to a single folder.',
     )
+
+    parser.add_argument(
+    '--from_csv', action='store_true',
+    help='Recreate mixed corruption using corruption assignments from a CSV file.'
+    )
+
+    parser.add_argument(
+    '--path', type=Path, default=Path('./datasets/UCF50_mixed_labels.csv'),
+    help='Path to CSV file containing video_path,corruption_type mappings.'
+    )
+
     return parser.parse_args()
 
 def _execute_tasks(tasks: list, workers: int, desc: str, out_dir: Path) -> None:
@@ -557,8 +568,32 @@ def main() -> None:
         tasks = []
         csv_records = []
 
+        csv_mapping = {}
+
+        if args.from_csv:
+            if args.path is None:
+                print('[ERROR] --from_csv requires --path <csv_file>', file=sys.stderr)
+                sys.exit(1)
+
+            with open(args.path, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    csv_mapping[row['video_path']] = row['corruption_type']
+
         for i, src_p in enumerate(src_videos):
+
+            rel_path = str(src_p.relative_to(args.src))
+
+            if args.from_csv:
+                if rel_path not in csv_mapping:
+                    print(f'[ERROR] {rel_path} not found in CSV', file=sys.stderr)
+                    sys.exit(1)
+                chosen_corruption = csv_mapping[rel_path]
+
+        else:
             chosen_corruption = assign_rng.choice(corruptions)
+            
+        for src_p in src_videos:
             rel_path = src_p.relative_to(args.src)
             dst_p = out_dir / rel_path
             
@@ -571,14 +606,16 @@ def main() -> None:
                 args.seed + i,
                 has_ffmpeg,
             ))
-            csv_records.append([str(rel_path), chosen_corruption])
+            if not args.from_csv:
+                csv_records.append([str(rel_path), chosen_corruption])
 
         # Write the tracking CSV
-        csv_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(csv_path, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['video_path', 'corruption_type'])
-            writer.writerows(csv_records)
+        if not args.from_csv:
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(csv_path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['video_path', 'corruption_type'])
+                writer.writerows(csv_records)
 
         # We wrap the existing execution logic in a helper to avoid repeating it
         _execute_tasks(tasks, args.workers, 'mixed', out_dir)

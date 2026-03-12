@@ -15,11 +15,11 @@ Dataset : UCF50 (action recognition, 50 classes)
 Default : MobileNetV3-Small (lightweight, RTX-3050 friendly)
 ============================================================
 
-SWAP THE MODEL  - only change the 3 lines below:
+SWAP THE MODEL  — only change the 3 lines below:
 """
 
 # ============================================================
-# ⚙️  MODEL SWAP ZONE - change only these 3 lines for a new backbone
+# ⚙️  MODEL SWAP ZONE — change only these 3 lines for a new backbone
 MODEL_NAME   = "mobilenet_v3_small"               # torchvision model function name
 FEATURE_DIM  = 576                                 # channels coming out of backbone (before head)
 PRETRAINED   = True                                # use ImageNet pretrained weights
@@ -41,13 +41,13 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from sklearn.model_selection import StratifiedShuffleSplit
 
 warnings.filterwarnings("ignore")
-
-CLEAN_DIR = Path("./datasets/UCF50_mixed")        # Uncorrupted videos for training
+CLEAN_DIR = Path("./datasets/UCF50")        # Uncorrupted videos for training
 MIXED_DIR = Path("./datasets/UCF50_mixed") # Corrupted videos for testing
 
 # ─────────────────────────────────────────────────────────────
 # 1.  ARGUMENT PARSER
 # ─────────────────────────────────────────────────────────────
+
 def build_parser():
     p = argparse.ArgumentParser(
         description="UCF50 Action Recognition with optional ViTTA"
@@ -82,7 +82,7 @@ def build_parser():
     p.add_argument("--mode",        default="train_eval",
                    choices=["train_eval","eval_only"],
                    help="train_eval: train then evaluate; eval_only: load weights and evaluate")
-    p.add_argument("--load_weights",default=None, help="Path to .pth file for eval_only mode")
+    p.add_argument("--load_weights",type = Path, default=None, help="Path to .pth file for eval_only mode")
     return p
 
 
@@ -96,9 +96,9 @@ STD  = [0.229, 0.224, 0.225]
 def collect_videos(root_dir: str):
     """
     Returns:
-        video_paths : list of absolute paths.
-        labels      : list of int class indices.
-        class_names : sorted list of class folder names.
+        video_paths : list of absolute paths
+        labels      : list of int class indices
+        class_names : sorted list of class folder names
     """
     root = Path(root_dir)
     class_names = sorted([d.name for d in root.iterdir() if d.is_dir()])
@@ -193,13 +193,12 @@ def temporal_clips(video_path: str, num_frames: int, n_clips: int):
 # ─────────────────────────────────────────────────────────────
 def build_transforms(img_size, train=True):
     if train:
-        # not using aggressive augmentations since UCF50 videos are already diverse
         return T.Compose([
             T.ToPILImage(),
             T.Resize((img_size + 16, img_size + 16)),
-            # T.RandomCrop(img_size),
-            # T.RandomHorizontalFlip(),
-            # T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+            T.RandomCrop(img_size),
+            T.RandomHorizontalFlip(),
+            T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
             T.ToTensor(),
             T.Normalize(MEAN, STD),
         ])
@@ -273,7 +272,7 @@ class FrameAggregator(nn.Module):
         x = x.view(B * T, C, H, W)          # (B*T, C, H, W)
         feats = self.backbone(x)             # (B*T, feat_dim)
         feats = feats.view(B, T, -1)         # (B, T, feat_dim)
-        feats = feats.mean(dim=1)            # (B, feat_dim)  - temporal pooling
+        feats = feats.mean(dim=1)            # (B, feat_dim)  — temporal pooling
         return self.classifier(feats)        # (B, num_classes)
 
 
@@ -347,7 +346,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
 
 
 # ─────────────────────────────────────────────────────────────
-# 6.  ViTTA - Video Test-Time Adaptation
+# 6.  ViTTA — Video Test-Time Adaptation
 #     Based on: https://arxiv.org/pdf/2211.15393
 # ─────────────────────────────────────────────────────────────
 class ViTTA:
@@ -360,10 +359,10 @@ class ViTTA:
     At test time, for each test video:
       1. Sample N_clips temporally diverse clips (temporal augmentation).
       2. Update Batch Normalisation running statistics from these clips
-         (Test-Time BN adaptation - no labels needed).
+         (Test-Time BN adaptation — no labels needed).
       3. [Optional] Minimise prediction entropy for a few gradient steps
          (entropy-based self-supervised adaptation).
-      4. Aggregate predictions across clips -> final class prediction.
+      4. Aggregate predictions across clips → final class prediction.
 
     The BN update (step 2) is the core of the ViTTA paper; steps 3-4
     follow the general TTA / TTT literature cited therein.
@@ -381,16 +380,51 @@ class ViTTA:
     # ── Internal helpers ───────────────────────────────────────────────────────
     @staticmethod
     def _copy_model_to_adapt(model):
-        """Deep-copy and configure for BN-only adaptation."""
+        """
+        Deep-copy and configure for BN-only adaptation.
+
+        WHY module-type check instead of name-string matching:
+        Many backbones (MobileNetV3, EfficientNet, …) store BatchNorm layers
+        under purely numeric keys like 'backbone.0.0.1.weight', so substring
+        checks for 'bn' / 'norm' find nothing and leave zero trainable params,
+        causing the Adam optimizer to raise 'empty parameter list'.
+
+        Fix: collect the exact parameter names that belong to BatchNorm
+        modules by iterating named_modules(), then enable grad only for those.
+        """
         adapted = copy.deepcopy(model)
-        adapted.train()                         # BN layers now use batch stats
-        # Freeze everything except BN affine params
+        adapted.train()    # puts BN layers into train mode → use batch stats
+
+        # 1. Collect all param names that live inside a BatchNorm module
+        bn_param_names = set()
+        for mod_name, module in adapted.named_modules():
+            if isinstance(module, nn.modules.batchnorm._BatchNorm):
+                # Each BN module has 'weight' and 'bias' as direct params
+                for param_name, _ in module.named_parameters(recurse=False):
+                    full_name = f"{mod_name}.{param_name}" if mod_name else param_name
+                    bn_param_names.add(full_name)
+
+        if not bn_param_names:
+            # Fallback: if the backbone has no BN at all (rare), allow the
+            # classifier head to be adapted instead so the optimizer is never empty.
+            print("[ViTTA] ⚠  No BatchNorm layers found — falling back to "
+                  "classifier-head adaptation.")
+            for mod_name, module in adapted.named_modules():
+                if mod_name.startswith("classifier"):
+                    for param_name, _ in module.named_parameters(recurse=False):
+                        full_name = f"{mod_name}.{param_name}" if mod_name else param_name
+                        bn_param_names.add(full_name)
+
+        # 2. Freeze everything; unfreeze only the identified params
         for name, param in adapted.named_parameters():
-            if "bn" in name.lower() or "batch_norm" in name.lower() or \
-               "norm" in name.lower():
+            if name in bn_param_names:
                 param.requires_grad_(True)
             else:
                 param.requires_grad_(False)
+
+        n_trainable = sum(p.numel() for p in adapted.parameters() if p.requires_grad)
+        print(f"[ViTTA] Adapting {len(bn_param_names)} BN param tensors "
+              f"({n_trainable:,} scalars) at test time.")
         return adapted
 
     @staticmethod
@@ -411,10 +445,13 @@ class ViTTA:
 
     # ── Entropy minimisation (optional self-supervised step) ──────────────────
     def _entropy_min(self, adapted_model, clip_tensors):
-        opt = optim.Adam(
-            filter(lambda p: p.requires_grad, adapted_model.parameters()),
-            lr=self.adapt_lr
-        )
+        trainable_params = [p for p in adapted_model.parameters() if p.requires_grad]
+        if not trainable_params:
+            # Safety net: should never happen after the fixed _copy_model_to_adapt,
+            # but skip silently rather than crash.
+            print("[ViTTA] ⚠  _entropy_min skipped — no trainable params found.")
+            return
+        opt = optim.Adam(trainable_params, lr=self.adapt_lr)
         for _ in range(self.adapt_steps):
             logits_list = []
             for clip in clip_tensors:
@@ -482,7 +519,6 @@ def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
     total_loss, correct, total = 0.0, 0, 0
     t0 = time.time()
     for step, (clips, labels) in enumerate(loader):
-        print(f"  [Epoch {epoch}] Step {step+1}/{len(loader)} ...", end="\r")
         clips, labels = clips.to(device), labels.to(device)
         optimizer.zero_grad()
         logits = model(clips)
@@ -553,7 +589,7 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"\n{'='*60}")
-    print(f"  Action Recognition - UCF50  (device: {device})")
+    print(f"  Action Recognition — UCF50  (device: {device})")
     if torch.cuda.is_available():
         print(f"  GPU: {torch.cuda.get_device_name(0)}")
         print(f"  VRAM: {torch.cuda.get_device_properties(0).total_memory/1e9:.2f} GB")
@@ -588,7 +624,7 @@ def main():
     train_paths  = [clean_paths[i] for i in train_idx]
     train_labels = [clean_labels[i] for i in train_idx]
 
-    # TEST: from mixed UCF50_mixed (30 %)  - SAME indices -> no overlap
+    # TEST: from mixed UCF50_mixed (30 %)  — SAME indices → no overlap
     test_paths   = [mixed_paths[i] for i in test_idx]
     test_labels  = [mixed_labels[i] for i in test_idx]
 
@@ -695,7 +731,7 @@ def main():
         print(f"\n[RESULT] Overall Accuracy: {test_acc:.2f}%")
 
     else:
-        # ViTTA evaluation - per-video inference
+        # ViTTA evaluation — per-video inference
         print(f"[ViTTA] Running per-video adapted inference …")
         print(f"[ViTTA] n_clips={args.vitta_clips} | "
               f"adapt_steps={args.vitta_steps} | "
