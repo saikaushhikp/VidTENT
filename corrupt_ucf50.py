@@ -426,12 +426,12 @@ def _parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        '--prob', type=float, default=0.65,
-        help='Probability (0-1) of corrupting each frame (default: 0.65)',
+        '--prob', type=float, default=0.75,
+        help='Probability (0-1) of corrupting each frame (default: 0.75)',
     )
     parser.add_argument(
-        '--severity', type=int, default=2, choices=range(1, 6), metavar='1-5',
-        help='Corruption severity: 1 = mild … 5 = severe (default: 2)',
+        '--severity', type=int, default=4, choices=range(1, 6), metavar='1-5',
+        help='Corruption severity: 1 = mild … 5 = severe (default: 4)',
     )
     parser.add_argument(
         '--src', type=Path, default=_UCF50_DEFAULT,
