@@ -525,6 +525,7 @@ def main() -> None:
             print(f'[ERROR] {rel_path} not found in CSV', file=sys.stderr)
             sys.exit(1)
         chosen_corruption = csv_mapping[rel_path]
+        chosen_corruption = "rain" # for testing
         dst_p = out_dir / src_p.relative_to(args.src)
         tasks.append((
             str(src_p),
