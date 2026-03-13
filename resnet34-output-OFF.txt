@@ -1,0 +1,342 @@
+
+============================================================
+  Action Recognition — UCF50  (device: cuda)
+  GPU: NVIDIA RTX A6000
+  VRAM: 51.04 GB
+  ViTTA: DISABLED
+============================================================
+
+[DATA] Collecting videos …
+[DATA] Classes: 50
+[DATA] Clean videos: 6681
+[DATA] Mixed videos: 6681
+[DATA] Stratified 70-30 split (seed=42) …
+[DATA] Train samples: 4676
+[DATA] Test  samples: 2005
+
+[DATA] Per-class sample counts (train | test):
+  BaseballPitch                  train= 105 | test=  45
+  Basketball                     train=  96 | test=  41
+  BenchPress                     train= 112 | test=  48
+  Biking                         train= 101 | test=  44
+  Billiards                      train= 105 | test=  45
+  BreastStroke                   train=  71 | test=  30
+  CleanAndJerk                   train=  78 | test=  34
+  Diving                         train= 107 | test=  46
+  Drumming                       train= 113 | test=  48
+  Fencing                        train=  78 | test=  33
+  GolfSwing                      train=  99 | test=  43
+  HighJump                       train=  86 | test=  37
+  HorseRace                      train=  89 | test=  38
+  HorseRiding                    train= 138 | test=  59
+  HulaHoop                       train=  87 | test=  38
+  JavelinThrow                   train=  82 | test=  35
+  JugglingBalls                  train=  85 | test=  37
+  JumpRope                       train= 103 | test=  45
+  JumpingJack                    train=  86 | test=  37
+  Kayaking                       train= 110 | test=  47
+  Lunges                         train=  99 | test=  42
+  MilitaryParade                 train=  89 | test=  38
+  Mixing                         train=  99 | test=  42
+  Nunchucks                      train= 105 | test=  45
+  PizzaTossing                   train=  80 | test=  34
+  PlayingGuitar                  train= 112 | test=  48
+  PlayingPiano                   train=  73 | test=  32
+  PlayingTabla                   train=  87 | test=  37
+  PlayingViolin                  train=  70 | test=  30
+  PoleVault                      train= 112 | test=  48
+  PommelHorse                    train=  86 | test=  37
+  PullUps                        train=  84 | test=  36
+  Punch                          train= 112 | test=  48
+  PushUps                        train=  74 | test=  32
+  RockClimbingIndoor             train= 104 | test=  44
+  RopeClimbing                   train=  91 | test=  39
+  Rowing                         train=  96 | test=  41
+  SalsaSpin                      train=  93 | test=  40
+  SkateBoarding                  train=  84 | test=  36
+  Skiing                         train= 101 | test=  43
+  Skijet                         train=  70 | test=  30
+  SoccerJuggling                 train= 109 | test=  47
+  Swing                          train=  96 | test=  41
+  TaiChi                         train=  70 | test=  30
+  TennisSwing                    train= 117 | test=  50
+  ThrowDiscus                    train=  92 | test=  39
+  TrampolineJumping              train=  83 | test=  36
+  VolleyballSpiking              train=  81 | test=  35
+  WalkingWithDog                 train=  86 | test=  37
+  YoYo                           train=  90 | test=  38
+
+[MODEL] Loading backbone: resnet34 (pretrained=True)
+[MODEL] Total params: 21,310,322  |  Trainable: 21,310,322
+
+============================================================
+  TRAINING  (3 epochs)
+============================================================
+
+[EPOCH 1/3]
+  [Epoch 1] Step 10/584 | Loss: 4.1627 | Acc: 5.00% | Time: 1.5s
+  [Epoch 1] Step 20/584 | Loss: 4.0718 | Acc: 5.00% | Time: 2.0s
+  [Epoch 1] Step 30/584 | Loss: 3.8681 | Acc: 10.00% | Time: 2.7s
+  [Epoch 1] Step 40/584 | Loss: 3.8290 | Acc: 10.31% | Time: 3.2s
+  [Epoch 1] Step 50/584 | Loss: 3.7385 | Acc: 11.50% | Time: 3.8s
+  [Epoch 1] Step 60/584 | Loss: 3.6632 | Acc: 12.92% | Time: 4.4s
+  [Epoch 1] Step 70/584 | Loss: 3.5607 | Acc: 16.07% | Time: 5.5s
+  [Epoch 1] Step 80/584 | Loss: 3.4546 | Acc: 18.91% | Time: 6.4s
+  [Epoch 1] Step 90/584 | Loss: 3.3713 | Acc: 21.81% | Time: 7.6s
+  [Epoch 1] Step 100/584 | Loss: 3.2982 | Acc: 23.88% | Time: 8.6s
+  [Epoch 1] Step 110/584 | Loss: 3.2318 | Acc: 25.68% | Time: 9.9s
+  [Epoch 1] Step 120/584 | Loss: 3.1630 | Acc: 28.33% | Time: 10.8s
+  [Epoch 1] Step 130/584 | Loss: 3.1087 | Acc: 29.81% | Time: 12.1s
+  [Epoch 1] Step 140/584 | Loss: 3.0516 | Acc: 32.32% | Time: 13.0s
+  [Epoch 1] Step 150/584 | Loss: 3.0007 | Acc: 34.17% | Time: 14.3s
+  [Epoch 1] Step 160/584 | Loss: 2.9722 | Acc: 34.84% | Time: 15.2s
+  [Epoch 1] Step 170/584 | Loss: 2.9296 | Acc: 35.88% | Time: 16.5s
+  [Epoch 1] Step 180/584 | Loss: 2.8849 | Acc: 36.74% | Time: 17.4s
+  [Epoch 1] Step 190/584 | Loss: 2.8422 | Acc: 38.03% | Time: 18.6s
+  [Epoch 1] Step 200/584 | Loss: 2.8085 | Acc: 39.25% | Time: 19.5s
+  [Epoch 1] Step 210/584 | Loss: 2.7839 | Acc: 39.64% | Time: 20.8s
+  [Epoch 1] Step 220/584 | Loss: 2.7503 | Acc: 40.80% | Time: 21.7s
+  [Epoch 1] Step 230/584 | Loss: 2.7190 | Acc: 41.79% | Time: 23.0s
+  [Epoch 1] Step 240/584 | Loss: 2.6973 | Acc: 42.24% | Time: 24.0s
+  [Epoch 1] Step 250/584 | Loss: 2.6676 | Acc: 43.10% | Time: 25.6s
+  [Epoch 1] Step 260/584 | Loss: 2.6410 | Acc: 43.85% | Time: 26.5s
+  [Epoch 1] Step 270/584 | Loss: 2.6168 | Acc: 44.63% | Time: 27.8s
+  [Epoch 1] Step 280/584 | Loss: 2.5924 | Acc: 45.18% | Time: 28.8s
+  [Epoch 1] Step 290/584 | Loss: 2.5755 | Acc: 45.52% | Time: 30.0s
+  [Epoch 1] Step 300/584 | Loss: 2.5548 | Acc: 46.08% | Time: 31.0s
+  [Epoch 1] Step 310/584 | Loss: 2.5303 | Acc: 46.81% | Time: 32.2s
+  [Epoch 1] Step 320/584 | Loss: 2.5084 | Acc: 47.42% | Time: 33.2s
+  [Epoch 1] Step 330/584 | Loss: 2.4885 | Acc: 47.99% | Time: 34.4s
+  [Epoch 1] Step 340/584 | Loss: 2.4649 | Acc: 48.71% | Time: 35.4s
+  [Epoch 1] Step 350/584 | Loss: 2.4386 | Acc: 49.54% | Time: 36.7s
+  [Epoch 1] Step 360/584 | Loss: 2.4187 | Acc: 50.07% | Time: 37.6s
+  [Epoch 1] Step 370/584 | Loss: 2.4008 | Acc: 50.68% | Time: 38.9s
+  [Epoch 1] Step 380/584 | Loss: 2.3820 | Acc: 51.15% | Time: 40.0s
+  [Epoch 1] Step 390/584 | Loss: 2.3616 | Acc: 51.76% | Time: 41.2s
+  [Epoch 1] Step 400/584 | Loss: 2.3368 | Acc: 52.53% | Time: 42.5s
+  [Epoch 1] Step 410/584 | Loss: 2.3184 | Acc: 53.08% | Time: 43.7s
+  [Epoch 1] Step 420/584 | Loss: 2.3019 | Acc: 53.48% | Time: 44.6s
+  [Epoch 1] Step 430/584 | Loss: 2.2873 | Acc: 53.92% | Time: 45.5s
+  [Epoch 1] Step 440/584 | Loss: 2.2735 | Acc: 54.40% | Time: 46.4s
+  [Epoch 1] Step 450/584 | Loss: 2.2630 | Acc: 54.69% | Time: 47.2s
+  [Epoch 1] Step 460/584 | Loss: 2.2523 | Acc: 54.97% | Time: 47.8s
+  [Epoch 1] Step 470/584 | Loss: 2.2370 | Acc: 55.45% | Time: 48.6s
+  [Epoch 1] Step 480/584 | Loss: 2.2233 | Acc: 55.83% | Time: 49.2s
+  [Epoch 1] Step 490/584 | Loss: 2.2122 | Acc: 56.12% | Time: 50.0s
+  [Epoch 1] Step 500/584 | Loss: 2.2004 | Acc: 56.53% | Time: 50.6s
+  [Epoch 1] Step 510/584 | Loss: 2.1873 | Acc: 56.91% | Time: 51.4s
+  [Epoch 1] Step 520/584 | Loss: 2.1731 | Acc: 57.38% | Time: 52.0s
+  [Epoch 1] Step 530/584 | Loss: 2.1606 | Acc: 57.71% | Time: 52.8s
+  [Epoch 1] Step 540/584 | Loss: 2.1494 | Acc: 58.03% | Time: 53.4s
+  [Epoch 1] Step 550/584 | Loss: 2.1356 | Acc: 58.45% | Time: 54.1s
+  [Epoch 1] Step 560/584 | Loss: 2.1217 | Acc: 58.88% | Time: 54.8s
+  [Epoch 1] Step 570/584 | Loss: 2.1127 | Acc: 59.08% | Time: 55.5s
+  [Epoch 1] Step 580/584 | Loss: 2.1025 | Acc: 59.46% | Time: 56.2s
+  [Epoch 1] Step 584/584 | Loss: 2.0998 | Acc: 59.50% | Time: 56.5s
+
+  ▶ Epoch   1 Summary:
+    Train → Loss: 2.0998 | Acc: 59.50%
+    Test  → Loss: 2.8057 | Acc: 38.70%
+    LR    = 0.000075
+    ★ New best model saved → best_model.pth (Acc=38.70%)
+
+[EPOCH 2/3]
+  [Epoch 2] Step 10/584 | Loss: 1.1984 | Acc: 88.75% | Time: 1.0s
+  [Epoch 2] Step 20/584 | Loss: 1.2815 | Acc: 85.62% | Time: 1.6s
+  [Epoch 2] Step 30/584 | Loss: 1.2872 | Acc: 86.67% | Time: 2.4s
+  [Epoch 2] Step 40/584 | Loss: 1.2736 | Acc: 87.19% | Time: 3.0s
+  [Epoch 2] Step 50/584 | Loss: 1.2502 | Acc: 88.00% | Time: 3.8s
+  [Epoch 2] Step 60/584 | Loss: 1.2619 | Acc: 86.46% | Time: 4.4s
+  [Epoch 2] Step 70/584 | Loss: 1.2628 | Acc: 86.61% | Time: 5.1s
+  [Epoch 2] Step 80/584 | Loss: 1.2612 | Acc: 85.94% | Time: 5.7s
+  [Epoch 2] Step 90/584 | Loss: 1.2461 | Acc: 86.39% | Time: 6.5s
+  [Epoch 2] Step 100/584 | Loss: 1.2440 | Acc: 86.25% | Time: 7.1s
+  [Epoch 2] Step 110/584 | Loss: 1.2348 | Acc: 86.59% | Time: 7.8s
+  [Epoch 2] Step 120/584 | Loss: 1.2435 | Acc: 86.56% | Time: 8.6s
+  [Epoch 2] Step 130/584 | Loss: 1.2375 | Acc: 86.54% | Time: 9.4s
+  [Epoch 2] Step 140/584 | Loss: 1.2380 | Acc: 86.61% | Time: 10.0s
+  [Epoch 2] Step 150/584 | Loss: 1.2399 | Acc: 86.83% | Time: 10.8s
+  [Epoch 2] Step 160/584 | Loss: 1.2325 | Acc: 87.11% | Time: 11.4s
+  [Epoch 2] Step 170/584 | Loss: 1.2364 | Acc: 86.84% | Time: 12.2s
+  [Epoch 2] Step 180/584 | Loss: 1.2366 | Acc: 86.81% | Time: 12.9s
+  [Epoch 2] Step 190/584 | Loss: 1.2335 | Acc: 86.91% | Time: 13.6s
+  [Epoch 2] Step 200/584 | Loss: 1.2269 | Acc: 87.06% | Time: 14.2s
+  [Epoch 2] Step 210/584 | Loss: 1.2258 | Acc: 87.20% | Time: 14.9s
+  [Epoch 2] Step 220/584 | Loss: 1.2176 | Acc: 87.56% | Time: 15.5s
+  [Epoch 2] Step 230/584 | Loss: 1.2152 | Acc: 87.61% | Time: 16.3s
+  [Epoch 2] Step 240/584 | Loss: 1.2118 | Acc: 87.86% | Time: 16.9s
+  [Epoch 2] Step 250/584 | Loss: 1.2129 | Acc: 87.85% | Time: 17.6s
+  [Epoch 2] Step 260/584 | Loss: 1.2104 | Acc: 87.74% | Time: 18.2s
+  [Epoch 2] Step 270/584 | Loss: 1.2078 | Acc: 87.64% | Time: 18.9s
+  [Epoch 2] Step 280/584 | Loss: 1.2097 | Acc: 87.59% | Time: 19.5s
+  [Epoch 2] Step 290/584 | Loss: 1.2083 | Acc: 87.59% | Time: 20.4s
+  [Epoch 2] Step 300/584 | Loss: 1.2059 | Acc: 87.58% | Time: 21.0s
+  [Epoch 2] Step 310/584 | Loss: 1.2047 | Acc: 87.54% | Time: 21.7s
+  [Epoch 2] Step 320/584 | Loss: 1.2007 | Acc: 87.66% | Time: 22.3s
+  [Epoch 2] Step 330/584 | Loss: 1.1986 | Acc: 87.65% | Time: 23.0s
+  [Epoch 2] Step 340/584 | Loss: 1.2056 | Acc: 87.39% | Time: 23.6s
+  [Epoch 2] Step 350/584 | Loss: 1.2040 | Acc: 87.54% | Time: 24.3s
+  [Epoch 2] Step 360/584 | Loss: 1.2029 | Acc: 87.64% | Time: 24.9s
+  [Epoch 2] Step 370/584 | Loss: 1.2033 | Acc: 87.67% | Time: 25.6s
+  [Epoch 2] Step 380/584 | Loss: 1.2023 | Acc: 87.66% | Time: 26.2s
+  [Epoch 2] Step 390/584 | Loss: 1.2006 | Acc: 87.76% | Time: 27.0s
+  [Epoch 2] Step 400/584 | Loss: 1.1999 | Acc: 87.78% | Time: 27.6s
+  [Epoch 2] Step 410/584 | Loss: 1.1992 | Acc: 87.80% | Time: 28.3s
+  [Epoch 2] Step 420/584 | Loss: 1.1973 | Acc: 87.86% | Time: 28.9s
+  [Epoch 2] Step 430/584 | Loss: 1.1937 | Acc: 87.97% | Time: 29.9s
+  [Epoch 2] Step 440/584 | Loss: 1.1899 | Acc: 88.18% | Time: 30.5s
+  [Epoch 2] Step 450/584 | Loss: 1.1902 | Acc: 88.06% | Time: 31.3s
+  [Epoch 2] Step 460/584 | Loss: 1.1897 | Acc: 88.10% | Time: 32.0s
+  [Epoch 2] Step 470/584 | Loss: 1.1888 | Acc: 88.01% | Time: 32.8s
+  [Epoch 2] Step 480/584 | Loss: 1.1859 | Acc: 88.10% | Time: 33.4s
+  [Epoch 2] Step 490/584 | Loss: 1.1817 | Acc: 88.16% | Time: 34.2s
+  [Epoch 2] Step 500/584 | Loss: 1.1801 | Acc: 88.22% | Time: 34.8s
+  [Epoch 2] Step 510/584 | Loss: 1.1798 | Acc: 88.21% | Time: 35.6s
+  [Epoch 2] Step 520/584 | Loss: 1.1763 | Acc: 88.32% | Time: 36.2s
+  [Epoch 2] Step 530/584 | Loss: 1.1783 | Acc: 88.23% | Time: 36.9s
+  [Epoch 2] Step 540/584 | Loss: 1.1779 | Acc: 88.26% | Time: 37.5s
+  [Epoch 2] Step 550/584 | Loss: 1.1750 | Acc: 88.39% | Time: 38.3s
+  [Epoch 2] Step 560/584 | Loss: 1.1749 | Acc: 88.37% | Time: 39.0s
+  [Epoch 2] Step 570/584 | Loss: 1.1734 | Acc: 88.40% | Time: 39.8s
+  [Epoch 2] Step 580/584 | Loss: 1.1727 | Acc: 88.45% | Time: 40.4s
+  [Epoch 2] Step 584/584 | Loss: 1.1716 | Acc: 88.48% | Time: 40.7s
+
+  ▶ Epoch   2 Summary:
+    Train → Loss: 1.1716 | Acc: 88.48%
+    Test  → Loss: 2.8682 | Acc: 41.20%
+    LR    = 0.000026
+    ★ New best model saved → best_model.pth (Acc=41.20%)
+
+[EPOCH 3/3]
+  [Epoch 3] Step 10/584 | Loss: 1.1540 | Acc: 88.75% | Time: 1.0s
+  [Epoch 3] Step 20/584 | Loss: 1.1352 | Acc: 87.50% | Time: 1.8s
+  [Epoch 3] Step 30/584 | Loss: 1.0734 | Acc: 90.00% | Time: 2.4s
+  [Epoch 3] Step 40/584 | Loss: 1.0721 | Acc: 90.31% | Time: 3.4s
+  [Epoch 3] Step 50/584 | Loss: 1.0754 | Acc: 91.00% | Time: 4.0s
+  [Epoch 3] Step 60/584 | Loss: 1.0602 | Acc: 91.67% | Time: 4.8s
+  [Epoch 3] Step 70/584 | Loss: 1.0626 | Acc: 91.61% | Time: 5.4s
+  [Epoch 3] Step 80/584 | Loss: 1.0630 | Acc: 91.88% | Time: 6.2s
+  [Epoch 3] Step 90/584 | Loss: 1.0557 | Acc: 91.94% | Time: 6.8s
+  [Epoch 3] Step 100/584 | Loss: 1.0456 | Acc: 92.50% | Time: 7.5s
+  [Epoch 3] Step 110/584 | Loss: 1.0423 | Acc: 92.50% | Time: 8.2s
+  [Epoch 3] Step 120/584 | Loss: 1.0425 | Acc: 92.40% | Time: 8.9s
+  [Epoch 3] Step 130/584 | Loss: 1.0404 | Acc: 92.40% | Time: 9.6s
+  [Epoch 3] Step 140/584 | Loss: 1.0461 | Acc: 92.32% | Time: 10.3s
+  [Epoch 3] Step 150/584 | Loss: 1.0405 | Acc: 92.50% | Time: 10.9s
+  [Epoch 3] Step 160/584 | Loss: 1.0328 | Acc: 92.81% | Time: 11.7s
+  [Epoch 3] Step 170/584 | Loss: 1.0317 | Acc: 92.87% | Time: 12.4s
+  [Epoch 3] Step 180/584 | Loss: 1.0299 | Acc: 93.06% | Time: 13.1s
+  [Epoch 3] Step 190/584 | Loss: 1.0235 | Acc: 93.22% | Time: 13.7s
+  [Epoch 3] Step 200/584 | Loss: 1.0196 | Acc: 93.44% | Time: 14.5s
+  [Epoch 3] Step 210/584 | Loss: 1.0175 | Acc: 93.63% | Time: 15.0s
+  [Epoch 3] Step 220/584 | Loss: 1.0132 | Acc: 93.75% | Time: 15.8s
+  [Epoch 3] Step 230/584 | Loss: 1.0104 | Acc: 93.86% | Time: 16.3s
+  [Epoch 3] Step 240/584 | Loss: 1.0082 | Acc: 94.01% | Time: 17.2s
+  [Epoch 3] Step 250/584 | Loss: 1.0067 | Acc: 94.15% | Time: 17.7s
+  [Epoch 3] Step 260/584 | Loss: 1.0073 | Acc: 94.18% | Time: 18.5s
+  [Epoch 3] Step 270/584 | Loss: 1.0059 | Acc: 94.26% | Time: 19.0s
+  [Epoch 3] Step 280/584 | Loss: 1.0027 | Acc: 94.38% | Time: 19.8s
+  [Epoch 3] Step 290/584 | Loss: 1.0008 | Acc: 94.40% | Time: 20.3s
+  [Epoch 3] Step 300/584 | Loss: 0.9995 | Acc: 94.42% | Time: 21.1s
+  [Epoch 3] Step 310/584 | Loss: 0.9983 | Acc: 94.44% | Time: 21.7s
+  [Epoch 3] Step 320/584 | Loss: 0.9983 | Acc: 94.45% | Time: 22.4s
+  [Epoch 3] Step 330/584 | Loss: 0.9955 | Acc: 94.62% | Time: 23.3s
+  [Epoch 3] Step 340/584 | Loss: 0.9947 | Acc: 94.63% | Time: 24.0s
+  [Epoch 3] Step 350/584 | Loss: 0.9960 | Acc: 94.50% | Time: 24.6s
+  [Epoch 3] Step 360/584 | Loss: 0.9952 | Acc: 94.55% | Time: 25.4s
+  [Epoch 3] Step 370/584 | Loss: 0.9929 | Acc: 94.59% | Time: 25.9s
+  [Epoch 3] Step 380/584 | Loss: 0.9945 | Acc: 94.61% | Time: 26.6s
+  [Epoch 3] Step 390/584 | Loss: 0.9953 | Acc: 94.65% | Time: 27.2s
+  [Epoch 3] Step 400/584 | Loss: 0.9943 | Acc: 94.69% | Time: 28.0s
+  [Epoch 3] Step 410/584 | Loss: 0.9936 | Acc: 94.70% | Time: 28.5s
+  [Epoch 3] Step 420/584 | Loss: 0.9915 | Acc: 94.73% | Time: 29.3s
+  [Epoch 3] Step 430/584 | Loss: 0.9905 | Acc: 94.83% | Time: 29.9s
+  [Epoch 3] Step 440/584 | Loss: 0.9907 | Acc: 94.86% | Time: 30.7s
+  [Epoch 3] Step 450/584 | Loss: 0.9909 | Acc: 94.86% | Time: 31.3s
+  [Epoch 3] Step 460/584 | Loss: 0.9903 | Acc: 94.89% | Time: 32.1s
+  [Epoch 3] Step 470/584 | Loss: 0.9901 | Acc: 94.89% | Time: 32.8s
+  [Epoch 3] Step 480/584 | Loss: 0.9898 | Acc: 94.92% | Time: 33.4s
+  [Epoch 3] Step 490/584 | Loss: 0.9898 | Acc: 94.95% | Time: 34.2s
+  [Epoch 3] Step 500/584 | Loss: 0.9881 | Acc: 95.03% | Time: 34.8s
+  [Epoch 3] Step 510/584 | Loss: 0.9866 | Acc: 95.07% | Time: 35.5s
+  [Epoch 3] Step 520/584 | Loss: 0.9856 | Acc: 95.14% | Time: 36.1s
+  [Epoch 3] Step 530/584 | Loss: 0.9854 | Acc: 95.17% | Time: 36.9s
+  [Epoch 3] Step 540/584 | Loss: 0.9849 | Acc: 95.19% | Time: 37.5s
+  [Epoch 3] Step 550/584 | Loss: 0.9838 | Acc: 95.23% | Time: 38.2s
+  [Epoch 3] Step 560/584 | Loss: 0.9830 | Acc: 95.25% | Time: 38.9s
+  [Epoch 3] Step 570/584 | Loss: 0.9827 | Acc: 95.22% | Time: 39.6s
+  [Epoch 3] Step 580/584 | Loss: 0.9801 | Acc: 95.28% | Time: 40.2s
+  [Epoch 3] Step 584/584 | Loss: 0.9794 | Acc: 95.29% | Time: 40.5s
+
+  ▶ Epoch   3 Summary:
+    Train → Loss: 0.9794 | Acc: 95.29%
+    Test  → Loss: 2.5461 | Acc: 46.03%
+    LR    = 0.000001
+    ★ New best model saved → best_model.pth (Acc=46.03%)
+
+[TRAIN DONE] Best Test Accuracy: 46.03%
+
+============================================================
+  EVALUATION  (ViTTA=OFF)
+============================================================
+
+[RESULT] Test Loss  : 2.5461
+[RESULT] Test Acc   : 46.03%
+
+[RESULT] Per-class Accuracy:
+  BaseballPitch                    9/ 45 =  20.0%
+  Basketball                      12/ 41 =  29.3%
+  BenchPress                      10/ 48 =  20.8%
+  Biking                          17/ 44 =  38.6%
+  Billiards                       32/ 45 =  71.1%
+  BreastStroke                    14/ 30 =  46.7%
+  CleanAndJerk                    15/ 34 =  44.1%
+  Diving                          29/ 46 =  63.0%
+  Drumming                        32/ 48 =  66.7%
+  Fencing                         12/ 33 =  36.4%
+  GolfSwing                       12/ 43 =  27.9%
+  HighJump                         6/ 37 =  16.2%
+  HorseRace                        9/ 38 =  23.7%
+  HorseRiding                     26/ 59 =  44.1%
+  HulaHoop                        10/ 38 =  26.3%
+  JavelinThrow                    11/ 35 =  31.4%
+  JugglingBalls                   19/ 37 =  51.4%
+  JumpRope                        13/ 45 =  28.9%
+  JumpingJack                     22/ 37 =  59.5%
+  Kayaking                        38/ 47 =  80.9%
+  Lunges                          14/ 42 =  33.3%
+  MilitaryParade                  36/ 38 =  94.7%
+  Mixing                          22/ 42 =  52.4%
+  Nunchucks                       13/ 45 =  28.9%
+  PizzaTossing                     4/ 34 =  11.8%
+  PlayingGuitar                   44/ 48 =  91.7%
+  PlayingPiano                     7/ 32 =  21.9%
+  PlayingTabla                    34/ 37 =  91.9%
+  PlayingViolin                   13/ 30 =  43.3%
+  PoleVault                       24/ 48 =  50.0%
+  PommelHorse                     17/ 37 =  45.9%
+  PullUps                         15/ 36 =  41.7%
+  Punch                           28/ 48 =  58.3%
+  PushUps                         11/ 32 =  34.4%
+  RockClimbingIndoor               9/ 44 =  20.5%
+  RopeClimbing                    31/ 39 =  79.5%
+  Rowing                          13/ 41 =  31.7%
+  SalsaSpin                       13/ 40 =  32.5%
+  SkateBoarding                   12/ 36 =  33.3%
+  Skiing                          31/ 43 =  72.1%
+  Skijet                           4/ 30 =  13.3%
+  SoccerJuggling                   8/ 47 =  17.0%
+  Swing                           35/ 41 =  85.4%
+  TaiChi                          15/ 30 =  50.0%
+  TennisSwing                     25/ 50 =  50.0%
+  ThrowDiscus                     24/ 39 =  61.5%
+  TrampolineJumping               29/ 36 =  80.6%
+  VolleyballSpiking               10/ 35 =  28.6%
+  WalkingWithDog                   9/ 37 =  24.3%
+  YoYo                            25/ 38 =  65.8%
+
+[RESULT] Overall Accuracy: 46.03%
+
+============================================================
+  DONE.
+============================================================

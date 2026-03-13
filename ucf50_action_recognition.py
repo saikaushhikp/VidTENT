@@ -20,10 +20,14 @@ SWAP THE MODEL  — only change the 3 lines below:
 
 # ============================================================
 # ⚙️  MODEL SWAP ZONE — change only these 3 lines for a new backbone
-MODEL_NAME   = "mobilenet_v3_small"               # torchvision model function name
-FEATURE_DIM  = 576                                 # channels coming out of backbone (before head)
-PRETRAINED   = True                                # use ImageNet pretrained weights
+# MODEL_NAME   = "mobilenet_v3_small"               # torchvision model function name
+# FEATURE_DIM  = 576                                 # channels coming out of backbone (before head)
+# PRETRAINED   = True                                # use ImageNet pretrained weights
 # ============================================================
+
+MODEL_NAME   = "efficientnet_b1"
+FEATURE_DIM  = 1280
+PRETRAINED   = True
 
 import os, sys, copy, time, random, argparse, warnings
 from pathlib import Path
@@ -196,6 +200,7 @@ def build_transforms(img_size, train=True):
         return T.Compose([
             T.ToPILImage(),
             T.Resize((img_size + 16, img_size + 16)),
+            # T.Resize((img_size, img_size)),
             T.RandomCrop(img_size),
             T.RandomHorizontalFlip(),
             T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
@@ -519,7 +524,7 @@ def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
     total_loss, correct, total = 0.0, 0, 0
     t0 = time.time()
     for step, (clips, labels) in enumerate(loader):
-        print(f"  [Epoch {epoch}] Step {step+1}/{len(loader)} ...", end="\r")
+        # print(f"  [Epoch {epoch}] Step {step+1}/{len(loader)} ...", end="\r")
         clips, labels = clips.to(device), labels.to(device)
         optimizer.zero_grad()
         logits = model(clips)
