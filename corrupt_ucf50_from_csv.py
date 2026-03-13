@@ -1,50 +1,27 @@
 #!/usr/bin/env python3
 """
-corrupt_ucf50.py
-================
-Generates per-corruption-type copies of the UCF50 dataset.
+corrupt_ucf50_from_csv.py
+=========================
+Recreates the UCF50_mixed corrupted dataset using per-video corruption
+assignments stored in a CSV file (as produced by corrupt_ucf50.py --mixed).
 
-For each requested corruption type  c  an output tree is created:
+Expected CSV format (header row required):
+    video_path,corruption_type
+    BaseballPitch/v_BaseballPitch_g01_c01.avi,gauss
+    ...
 
-    datasets/UCF50_<c>/
-        <ClassName>/
-            <original_video_name>.avi   ← selectively corrupted version
+For each row the corresponding source video is located under --src, the
+specified corruption is applied per-frame with probability --prob, and the
+result is written to:
 
-Corruption is applied *per-frame* as a Bernoulli draw:
-    with probability  p  (default 0.65)  ->  apply corruption
-    with probability  1-p               ->  keep frame unchanged
-
-The final video is the time-concatenation of all processed frames.
-
-Supported corruption types
---------------------------
-  gauss     - additive Gaussian noise
-  pepper    - random black pixels (pepper noise)
-  salt      - random white pixels (salt noise)
-  shot      - Poisson (shot) noise
-  impulse   - combined salt-and-pepper (impulse noise)
-  defocus   - defocus blur (Gaussian disc approximation)
-  motion    - linear horizontal motion blur
-  zoom      - zoom / radial blur
-  jpeg      - JPEG compression artefacts
-  contrast  - reduced contrast
-  rain      - synthetic rain streaks
-  h265_abr  - H.265 ABR compression artefacts
-               (requires ffmpeg with libx265; falls back to heavy JPEG otherwise)
+    <dst-root>/UCF50_mixed/<video_path>
 
 Usage
 -----
-  # Single corruption
-  python corrupt_ucf50.py --corruption gauss
-
-  # Multiple corruptions
-  python corrupt_ucf50.py --corruption gauss motion rain
-
-  # All 12 corruption types
-  python corrupt_ucf50.py --corruption all
+  python corrupt_ucf50_from_csv.py --path datasets/UCF50_mixed_labels.csv
 
   # Custom options
-  python corrupt_ucf50.py --corruption all --prob 0.65 --severity 2 --workers 4 --seed 0
+  python corrupt_ucf50_from_csv.py --path datasets/UCF50_mixed_labels.csv --prob 0.70 --severity 4 --workers 4 --seed 42
 
 Dependencies
 ------------
@@ -419,11 +396,8 @@ def _parse_args() -> argparse.Namespace:
         description=__doc__,
     )
     parser.add_argument(
-        '--corruption', nargs='+', required=True, metavar='TYPE',
-        help=(
-            "One or more corruption types to apply, or 'all'. "
-            f"Available: {', '.join(CORRUPTION_TYPES)}"
-        ),
+        '--path', type=Path, default=Path('./datasets/UCF50_mixed_labels.csv'),
+        help='Path to CSV file containing video_path,corruption_type mappings (default: datasets/UCF50_mixed_labels.csv)',
     )
     parser.add_argument(
         '--prob', type=float, default=0.70,
@@ -453,21 +427,6 @@ def _parse_args() -> argparse.Namespace:
         '--seed', type=int, default=42,
         help='Base random seed for reproducibility (default: 42)',
     )
-    parser.add_argument(
-    '--mixed', action='store_true',
-    help='Mixed mode: apply one random corruption per video and save to a single folder.',
-    )
-
-    parser.add_argument(
-    '--from_csv', action='store_true',
-    help='Recreate mixed corruption using corruption assignments from a CSV file.'
-    )
-
-    parser.add_argument(
-    '--path', type=Path, default=Path('./datasets/UCF50_mixed_labels.csv'),
-    help='Path to CSV file containing video_path,corruption_type mappings.'
-    )
-
     return parser.parse_args()
 
 def _execute_tasks(tasks: list, workers: int, desc: str, out_dir: Path) -> None:
@@ -505,19 +464,20 @@ def _execute_tasks(tasks: list, workers: int, desc: str, out_dir: Path) -> None:
 def main() -> None:
     args = _parse_args()
 
-    # -- Resolve corruption list ------------------------------------------------
-    if 'all' in args.corruption:
-        corruptions = CORRUPTION_TYPES[:]
-    else:
-        unknown = set(args.corruption) - set(CORRUPTION_TYPES)
-        if unknown:
-            print(
-                f'[ERROR] Unknown corruption type(s): {unknown}\n'
-                f'        Valid choices: {CORRUPTION_TYPES}',
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        corruptions = list(args.corruption)
+    # -- Read CSV mapping -------------------------------------------------------
+    if not args.path.is_file():
+        print(f'[ERROR] CSV file not found: {args.path}', file=sys.stderr)
+        sys.exit(1)
+
+    csv_mapping: Dict[str, str] = {}
+    with open(args.path, 'r', newline='') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            csv_mapping[row['video_path']] = row['corruption_type']
+
+    if not csv_mapping:
+        print(f'[ERROR] CSV file is empty: {args.path}', file=sys.stderr)
+        sys.exit(1)
 
     # -- Validate source directory ----------------------------------------------
     if not args.src.is_dir():
@@ -525,10 +485,11 @@ def main() -> None:
         sys.exit(1)
 
     dst_root = args.dst_root if args.dst_root else args.src.parent
+    out_dir  = dst_root / 'UCF50_mixed'
 
-    # -- Check ffmpeg / libx265 availability ----------------------------------─
+    # -- Check ffmpeg / libx265 if any video needs h265_abr --------------------
     has_ffmpeg = False
-    if 'h265_abr' in corruptions:
+    if 'h265_abr' in csv_mapping.values():
         has_ffmpeg = _check_ffmpeg_h265()
         if not has_ffmpeg:
             print(
@@ -537,110 +498,47 @@ def main() -> None:
                 '       For true H.265 artefacts: sudo apt install ffmpeg\n'
             )
 
-    # -- Collect source videos ------------------------------------------------─
+    # -- Collect source videos -------------------------------------------------
     src_videos = sorted(args.src.rglob('*.avi'))
     if not src_videos:
         print(f'[ERROR] No .avi files found under {args.src}', file=sys.stderr)
         sys.exit(1)
 
-    # -- Summary --------------------------------------------------------------─
+    # -- Summary ---------------------------------------------------------------
     print('=' * 60)
+    print(f'  CSV         : {args.path}')
     print(f'  Source      : {args.src}')
     print(f'  Videos      : {len(src_videos)}')
-    print(f'  Corruptions : {corruptions}')
     print(f'  Probability : {args.prob}')
     print(f'  Severity    : {args.severity} / 5')
     print(f'  Workers     : {args.workers}')
     print(f'  Seed        : {args.seed}')
-    print(f'  Output root : {dst_root}')
+    print(f'  Output dir  : {out_dir}')
     print('=' * 60)
     print()
 
-    # -- Process corruptions (Mixed or Separate) ------------------------------─
-    if args.mixed:
-        out_dir = dst_root / 'UCF50_mixed'
-        csv_path = dst_root / 'UCF50_mixed_labels.csv'
-        print(f'[MIXED MODE]  ->  {out_dir}')
-        print(f'[LOG FILE]    ->  {csv_path}')
-        
-        # Dedicated random generator for assigning corruptions reliably
-        assign_rng = random.Random(args.seed)
-        tasks = []
-        csv_records = []
+    # -- Build task list -------------------------------------------------------
+    tasks = []
+    for i, src_p in enumerate(src_videos):
+        rel_path = str(src_p.relative_to(args.src))
+        if rel_path not in csv_mapping:
+            print(f'[ERROR] {rel_path} not found in CSV', file=sys.stderr)
+            sys.exit(1)
+        chosen_corruption = csv_mapping[rel_path]
+        dst_p = out_dir / src_p.relative_to(args.src)
+        tasks.append((
+            str(src_p),
+            str(dst_p),
+            chosen_corruption,
+            args.severity,
+            args.prob,
+            args.seed + i,
+            has_ffmpeg,
+        ))
 
-        csv_mapping = {}
-
-        if args.from_csv:
-            if args.path is None:
-                print('[ERROR] --from_csv requires --path <csv_file>', file=sys.stderr)
-                sys.exit(1)
-
-            with open(args.path, 'r') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    csv_mapping[row['video_path']] = row['corruption_type']
-
-        for i, src_p in enumerate(src_videos):
-
-            rel_path = str(src_p.relative_to(args.src))
-
-            if args.from_csv:
-                if rel_path not in csv_mapping:
-                    print(f'[ERROR] {rel_path} not found in CSV', file=sys.stderr)
-                    sys.exit(1)
-                chosen_corruption = csv_mapping[rel_path]
-
-        else:
-            chosen_corruption = assign_rng.choice(corruptions)
-            
-        for src_p in src_videos:
-            rel_path = src_p.relative_to(args.src)
-            dst_p = out_dir / rel_path
-            
-            tasks.append((
-                str(src_p),
-                str(dst_p),
-                chosen_corruption,
-                args.severity,
-                args.prob,
-                args.seed + i,
-                has_ffmpeg,
-            ))
-            if not args.from_csv:
-                csv_records.append([str(rel_path), chosen_corruption])
-
-        # Write the tracking CSV
-        if not args.from_csv:
-            csv_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(csv_path, 'w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(['video_path', 'corruption_type'])
-                writer.writerows(csv_records)
-
-        # We wrap the existing execution logic in a helper to avoid repeating it
-        _execute_tasks(tasks, args.workers, 'mixed', out_dir)
-
-    else:
-        for corruption in corruptions:
-            out_dir = dst_root / f'UCF50_{corruption}'
-            print(f'[{corruption:>10s}]  ->  {out_dir}')
-
-            tasks = [
-                (
-                    str(src_p),
-                    str(out_dir / src_p.relative_to(args.src)),
-                    corruption,
-                    args.severity,
-                    args.prob,
-                    args.seed + i,
-                    has_ffmpeg,
-                )
-                for i, src_p in enumerate(src_videos)
-            ]
-            _execute_tasks(tasks, args.workers, corruption, out_dir)
-
+    _execute_tasks(tasks, args.workers, 'from_csv', out_dir)
     print('All corruptions complete.')
 
 if __name__ == '__main__':
     main()
-    # just commented 
+ 
