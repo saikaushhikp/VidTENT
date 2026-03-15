@@ -5,19 +5,37 @@ Action Recognition on UCF50 / UCF50_mixed Dataset
 ============================================================
 
 Three evaluation modes:
-  1. No adaptation  (baseline)      -> run without any TTA flag
-  2. AM-ViTTA (our new method)      -> run with --AM_ViTTA flag
+  1. No adaptation  (baseline)      → run without any TTA flag
+  2. AM-ViTTA (our new method)      → run with --AM_ViTTA flag
 
-# Run 1 - train + evaluate WITHOUT adaptation (baseline):
-  python ucf50_action_recognition.py
+Paper Reference (original ViTTA):
+  ViTTA: Video Test-Time Adaptation
+  https://arxiv.org/pdf/2211.15393
 
-  # Run 2 - evaluate WITH our new AM-ViTTA (no retraining):
+AM-ViTTA (our improvement over ViTTA):
+  - Adaptive Momentum EMA: alpha increases as more test videos
+    are seen, so early unreliable statistics are trusted less.
+  - Spatial augmentation on adaptation clips: adds random crop
+    and horizontal flip to give more diverse BN statistics
+    beyond just temporal resampling used in original ViTTA.
+  - Combined entropy + consistency loss: stabilises adaptation
+    by enforcing agreement across temporal views.
+  - Clean clip prediction: augmented clips used only for
+    adaptation; final prediction uses clean test transform.
+
+HOW TO RUN:
+  # Run 1 — train + evaluate WITHOUT adaptation (baseline):
+  python ucf50_action_recognition.py --mode train_eval
+
+  # Run 2 — evaluate WITH our new AM-ViTTA (no retraining):
   python ucf50_action_recognition.py --mode eval_only --load_weights best_model.pth --AM_ViTTA
 
+SWAP THE MODEL — only change the 3 lines in MODEL SWAP ZONE below.
 ============================================================
 """
 
 # ============================================================
+# ⚙️  MODEL SWAP ZONE — change only these 3 lines for a new backbone
 MODEL_NAME  = "mobilenet_v3_small"   # torchvision model function name
 FEATURE_DIM = 576                    # feature channels before head
 PRETRAINED  = True                   # use ImageNet pretrained weights
@@ -48,12 +66,12 @@ CLEAN_DIR = Path("./datasets/UCF50")        # Clean videos for training
 MIXED_DIR = Path("./datasets/UCF50_mixed")  # Corrupted videos for testing
 
 
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 # 1.  ARGUMENT PARSER
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 def build_parser():
     p = argparse.ArgumentParser(
-        description="UCF50 Action Recognition - Baseline vs AM-ViTTA"
+        description="UCF50 Action Recognition — Baseline vs AM-ViTTA"
     )
     # Paths
     p.add_argument("--clean_dir",    default=CLEAN_DIR,      help="Clean video folder")
@@ -73,7 +91,7 @@ def build_parser():
     p.add_argument("--lr",           type=float, default=1e-3)
     p.add_argument("--weight_decay", type=float, default=1e-4)
     p.add_argument("--num_workers",  type=int,   default=4)
-    p.add_argument("--save_every",   type=int,   default=5,    help="Save checkpoint every N(=5) epochs")
+    p.add_argument("--save_every",   type=int,   default=5,    help="Save checkpoint every N epochs")
 
     # AM-ViTTA hyperparameters
     p.add_argument("--AM_ViTTA",     action="store_true",     help="Enable AM-ViTTA (our new method)")
@@ -92,9 +110,9 @@ def build_parser():
     return p
 
 
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 # 2.  DATASET HELPERS
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 MEAN = [0.485, 0.456, 0.406]
 STD  = [0.229, 0.224, 0.225]
 
@@ -178,9 +196,9 @@ def temporal_clips(video_path: str, num_frames: int, n_clips: int):
     return clips
 
 
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 # 3.  TRANSFORMS
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 def build_transforms(img_size, train=True):
     """
     Standard train / test transforms.
@@ -190,7 +208,7 @@ def build_transforms(img_size, train=True):
     if train:
         return T.Compose([
             T.ToPILImage(),
-            T.Resize((img_size, img_size)),
+            T.Resize((img_size, img_size)),      # FIXED: was img_size+16
             T.RandomHorizontalFlip(),
             T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1),
             T.ToTensor(),
@@ -209,7 +227,7 @@ def build_vitta_transform(img_size):
     """
     Spatial augmentation transform used by AM-ViTTA during adaptation.
     Applies random crop + flip + colour jitter so that each clip gives
-    diverse spatial statistics to the BN alignment step - this goes
+    diverse spatial statistics to the BN alignment step — this goes
     beyond the purely temporal augmentation used in original ViTTA.
     """
     return T.Compose([
@@ -223,9 +241,9 @@ def build_vitta_transform(img_size):
     ])
 
 
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 # 4.  PYTORCH DATASET
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 class VideoDataset(Dataset):
     """
     Returns a tensor of shape (T, C, H, W) for each video.
@@ -254,13 +272,13 @@ class VideoDataset(Dataset):
         return clip, self.labels[idx]
 
 
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 # 5.  MODEL BUILDER
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 class FrameAggregator(nn.Module):
     """
     Wraps a 2-D CNN backbone for video by:
-      1. Flattening (B, T, C, H, W) --> (B*T, C, H, W)
+      1. Flattening (B, T, C, H, W) → (B*T, C, H, W)
       2. Extracting per-frame features via backbone
       3. Mean-pooling over T frames
       4. Classifying with a linear head
@@ -287,7 +305,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
     print(f"\n[MODEL] Loading backbone: {model_name} (pretrained={pretrained})")
     constructor = getattr(tvm, model_name)
 
-    # ## MobileNetV3 ###########################################
+    # ── MobileNetV3 ───────────────────────────────────────────
     if "mobilenet_v3" in model_name:
         weights = "DEFAULT" if pretrained else None
         net = constructor(weights=weights)
@@ -296,7 +314,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
             probe = backbone(torch.zeros(1, 3, 112, 112))
         feat_dim = probe.shape[1]
 
-    # ## EfficientNet ##########################################
+    # ── EfficientNet ──────────────────────────────────────────
     elif "efficientnet" in model_name:
         weights = "DEFAULT" if pretrained else None
         net = constructor(weights=weights)
@@ -305,7 +323,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
             probe = backbone(torch.zeros(1, 3, 112, 112))
         feat_dim = probe.shape[1]
 
-    # ## ResNet / ResNeXt ######################################
+    # ── ResNet / ResNeXt ──────────────────────────────────────
     elif "resnet" in model_name or "resnext" in model_name:
         weights = "DEFAULT" if pretrained else None
         net = constructor(weights=weights)
@@ -314,7 +332,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
             probe = backbone(torch.zeros(1, 3, 112, 112))
         feat_dim = probe.shape[1]
 
-    # ## Generic fallback ######################################
+    # ── Generic fallback ──────────────────────────────────────
     else:
         weights = "DEFAULT" if pretrained else None
         net = constructor(weights=weights)
@@ -336,7 +354,27 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
     return model
 
 
+# ─────────────────────────────────────────────────────────────
+# 6.  AM-ViTTA  — our new method
+#
+#  Improvements over original ViTTA:
+#  (a) Adaptive Momentum EMA  — alpha grows from alpha_min to
+#      alpha_max over warmup_videos test videos, so early
+#      test-statistics estimates are trusted less.
+#  (b) Spatial augmentation   — random crop + flip + colour
+#      jitter on adaptation clips for richer BN statistics.
+#  (c) Entropy + Consistency loss — entropy minimisation is
+#      combined with cross-clip prediction consistency to
+#      stabilise adaptation.
+#  (d) Clean clip prediction  — augmented clips adapt the
+#      model; final prediction uses the clean test transform
+#      so augmentation noise does not hurt inference.
+# ─────────────────────────────────────────────────────────────
 class AM_ViTTA:
+    """
+    Adaptive Momentum ViTTA (AM-ViTTA).
+    Our improved test-time adaptation method for action recognition.
+    """
 
     def __init__(self, model: nn.Module,
                  n_clips: int        = 4,
@@ -359,18 +397,18 @@ class AM_ViTTA:
         self.alpha_min      = alpha_min
         self.alpha_max      = alpha_max
 
-    # ## Adaptive alpha ########################################
+    # ── Adaptive alpha ────────────────────────────────────────
     def _get_alpha(self):
         """
-        Linearly ramp alpha from alpha_min --> alpha_max over
+        Linearly ramp alpha from alpha_min → alpha_max over
         warmup_videos videos.
-        Early in testing: low alpha  --> stay close to training stats.
-        Later in testing: higher alpha --> trust accumulated test stats more.
+        Early in testing: low alpha  → stay close to training stats.
+        Later in testing: higher alpha → trust accumulated test stats more.
         """
         progress = min(self.video_count / max(self.warmup_videos, 1), 1.0)
         return self.alpha_min + progress * (self.alpha_max - self.alpha_min)
 
-    # ## Model copy for BN-only adaptation ####################
+    # ── Model copy for BN-only adaptation ────────────────────
     @staticmethod
     def _copy_model_to_adapt(model):
         """Deep-copy model; freeze all params except BN affine weights."""
@@ -385,8 +423,8 @@ class AM_ViTTA:
                     bn_param_names.add(full)
 
         if not bn_param_names:
-            # Fallback: no BN layers - adapt classifier head instead
-            print("[AM-ViTTA] ⚠  No BN layers - falling back to classifier head.")
+            # Fallback: no BN layers — adapt classifier head instead
+            print("[AM-ViTTA] ⚠  No BN layers — falling back to classifier head.")
             for mod_name, module in adapted.named_modules():
                 if mod_name.startswith("classifier"):
                     for param_name, _ in module.named_parameters(recurse=False):
@@ -398,13 +436,13 @@ class AM_ViTTA:
 
         return adapted
 
-    # ## Entropy helper ########################################
+    # ── Entropy helper ────────────────────────────────────────
     @staticmethod
     def _entropy(logits: torch.Tensor) -> torch.Tensor:
         probs = torch.softmax(logits, dim=-1)
         return -(probs * torch.log(probs + 1e-8)).sum(dim=-1).mean()
 
-    # ## (a) Adaptive BN statistics update ####################
+    # ── (a) Adaptive BN statistics update ────────────────────
     def _update_bn_adaptive(self, adapted_model, clip_tensors):
         
         alpha = self._get_alpha()
@@ -436,11 +474,12 @@ class AM_ViTTA:
                         + (1.0 - alpha) * orig_vars[name]
                     )
                 
-    # ## (c) Entropy + Consistency loss #######################
+    # ── (c) Entropy + Consistency loss ───────────────────────
     def _entropy_consistency_min(self, adapted_model, clip_tensors):
         """
         Minimise entropy of predictions while enforcing consistency
-        across temporal clip views
+        across temporal clip views (our combined loss vs original
+        ViTTA which uses entropy alone).
         """
         trainable = [p for p in adapted_model.parameters() if p.requires_grad]
         if not trainable:
@@ -469,17 +508,17 @@ class AM_ViTTA:
             loss.backward()
             opt.step()
 
-    # ## Public inference ######################################
+    # ── Public inference ──────────────────────────────────────
     def predict(self, video_path: str, num_frames: int,
                 test_transform, vitta_transform=None):
         """
-        Inference on one video.
+        AM-ViTTA inference on one video.
         Returns (pred_class, confidence, entropy_value).
 
         vitta_transform  : spatially augmented transform used only
                            during adaptation (improvement b).
         test_transform   : clean transform used for final prediction
-                           (improvement d - no augmentation noise
+                           (improvement d — no augmentation noise
                            at inference time).
         """
         clips_frames = temporal_clips(video_path, num_frames, self.n_clips)
@@ -533,9 +572,9 @@ class AM_ViTTA:
         return pred, conf, ent
 
 
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 # 7.  TRAINING LOOP
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
     model.train()
     total_loss, correct, total = 0.0, 0, 0
@@ -593,12 +632,12 @@ def save_checkpoint(model, optimizer, epoch, path):
         "model":     model.state_dict(),
         "optimizer": optimizer.state_dict(),
     }, path)
-    print(f"  \|/ Checkpoint saved --> {path}")
+    print(f"  ✔ Checkpoint saved → {path}")
 
 
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 # 8.  MAIN
-# #############################################################
+# ─────────────────────────────────────────────────────────────
 def main():
     args = build_parser().parse_args()
 
@@ -616,7 +655,7 @@ def main():
         mode_label = "No Adaptation (baseline)"
 
     print(f"\n{'='*60}")
-    print(f"  Action Recognition - UCF50  (device: {device})")
+    print(f"  Action Recognition — UCF50  (device: {device})")
     if torch.cuda.is_available():
         print(f"  GPU : {torch.cuda.get_device_name(0)}")
         print(f"  VRAM: {torch.cuda.get_device_properties(0).total_memory/1e9:.2f} GB")
@@ -625,7 +664,7 @@ def main():
 
     os.makedirs(args.ckpt_dir, exist_ok=True)
 
-    # ## Step 1: Load & split data #############################
+    # ── Step 1: Load & split data ─────────────────────────────
     print("[DATA] Collecting videos …")
     clean_paths, clean_labels, class_names = collect_videos(args.clean_dir)
     mixed_paths, mixed_labels, _           = collect_videos(args.mixed_dir)
@@ -649,7 +688,7 @@ def main():
     train_paths  = [clean_paths[i] for i in train_idx]
     train_labels = [clean_labels[i] for i in train_idx]
 
-    # TEST on corrupted UCF50_mixed (30%) - same indices, no leakage
+    # TEST on corrupted UCF50_mixed (30%) — same indices, no leakage
     test_paths  = [mixed_paths[i] for i in test_idx]
     test_labels = [mixed_labels[i] for i in test_idx]
 
@@ -663,7 +702,7 @@ def main():
     for cid, cname in enumerate(class_names):
         print(f"  {cname:<30} train={tr_dist[cid]:>4} | test={te_dist[cid]:>4}")
 
-    # ## Step 2: Datasets & Loaders ############################
+    # ── Step 2: Datasets & Loaders ────────────────────────────
     train_tf = build_transforms(args.img_size, train=True)
     test_tf  = build_transforms(args.img_size, train=False)
 
@@ -681,7 +720,7 @@ def main():
         pin_memory=torch.cuda.is_available()
     )
 
-    # ## Step 3: Build model ###################################
+    # ── Step 3: Build model ───────────────────────────────────
     model = build_model(num_classes).to(device)
 
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
@@ -689,7 +728,7 @@ def main():
                             lr=args.lr, weight_decay=args.weight_decay)
     scheduler = CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-6)
 
-    # ## Step 4: Train #########################################
+    # ── Step 4: Train ─────────────────────────────────────────
     best_acc = 0.0
     if args.mode == "train_eval":
         print(f"\n{'='*60}")
@@ -704,15 +743,15 @@ def main():
             scheduler.step()
             val_loss, val_acc, _, _ = evaluate(model, test_loader, criterion, device)
 
-            print(f"\n  >>>> Epoch {epoch:>3} Summary<<<<")
-            print(f"    Train --> Loss: {tr_loss:.4f} | Acc: {tr_acc:.2f}%")
-            print(f"    Test  --> Loss: {val_loss:.4f} | Acc: {val_acc:.2f}%")
+            print(f"\n  ▶ Epoch {epoch:>3} Summary:")
+            print(f"    Train → Loss: {tr_loss:.4f} | Acc: {tr_acc:.2f}%")
+            print(f"    Test  → Loss: {val_loss:.4f} | Acc: {val_acc:.2f}%")
             print(f"    LR    = {scheduler.get_last_lr()[0]:.6f}")
 
             if val_acc > best_acc:
                 best_acc = val_acc
                 torch.save(model.state_dict(), args.best_model)
-                print(f"    * New best saved --> {args.best_model} (Acc={best_acc:.2f}%)")
+                print(f"    ★ New best saved → {args.best_model} (Acc={best_acc:.2f}%)")
 
             if epoch % args.save_every == 0:
                 ckpt_path = os.path.join(args.ckpt_dir, f"epoch_{epoch:03d}.pth")
@@ -727,12 +766,12 @@ def main():
         model.load_state_dict(torch.load(args.load_weights, map_location=device))
         print(f"[EVAL] Loaded weights from {args.load_weights}")
 
-    # ## Step 5: Evaluation ####################################
+    # ── Step 5: Evaluation ────────────────────────────────────
     print(f"\n{'='*60}")
-    print(f"  EVALUATION - {mode_label}")
+    print(f"  EVALUATION — {mode_label}")
     print(f"{'='*60}\n")
 
-    # ## 5a: No adaptation (baseline) #########################
+    # ── 5a: No adaptation (baseline) ─────────────────────────
     if not args.AM_ViTTA:
         model.eval()
         test_loss, test_acc, class_correct, class_total = evaluate(
@@ -748,6 +787,7 @@ def main():
             print(f"  {cname:<30} {cc:>3}/{ct:>3} = {pct:5.1f}%")
         print(f"\n[RESULT] Overall Accuracy (No Adaptation): {test_acc:.2f}%")
 
+    # ── 5b: AM-ViTTA (our new method) ────────────────────────
     else:
         vitta_tf = build_vitta_transform(args.img_size)
 

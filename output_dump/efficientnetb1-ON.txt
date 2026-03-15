@@ -1,8 +1,8 @@
 
 ============================================================
-  Action Recognition - UCF50  (device: cuda)
-  GPU: NVIDIA RTX  3050
-  VRAM:  4.00 GB
+  Action Recognition — UCF50  (device: cuda)
+  GPU: NVIDIA RTX A6000
+  VRAM: 51.04 GB
   ViTTA: ENABLED
 ============================================================
 

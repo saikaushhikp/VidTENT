@@ -1,5 +1,22 @@
 #!/usr/bin/env python3
+"""
+============================================================
+Action Recognition on UCF50 / UCF50_mixed Dataset
+with ViTTA (Video Test-Time Adaptation) Support
+============================================================
 
+Paper Reference:
+  ViTTA: Video Test-Time Adaptation
+  https://arxiv.org/pdf/2211.15393
+  GitHub: https://github.com/wlin-at/ViTTA
+
+Author  : Auto-generated
+Dataset : UCF50 (action recognition, 50 classes)
+Default : MobileNetV3-Small (lightweight, RTX-3050 friendly)
+============================================================
+
+SWAP THE MODEL  — only change the 3 lines below:
+"""
 
 # ============================================================
 # ⚙️  MODEL SWAP ZONE — change only these 3 lines for a new backbone
@@ -39,7 +56,7 @@ MIXED_DIR = Path("./datasets/UCF50_mixed") # Corrupted videos for testing
 
 def build_parser():
     p = argparse.ArgumentParser(
-        description="UCF50 Action Recognition with optional ViTTA / ViTTA-Adapters"
+        description="UCF50 Action Recognition with optional ViTTA"
     )
     # Paths
     p.add_argument("--clean_dir",   default=CLEAN_DIR, help="Clean video folder-Uncorrupted")
@@ -61,35 +78,17 @@ def build_parser():
     p.add_argument("--num_workers", type=int,   default=4)
     p.add_argument("--save_every",  type=int,   default=5,  help="Save checkpoint every N epochs")
 
-    # Inference / TTA flags  (mutually exclusive; pick one)
-    p.add_argument("--ViTTA",        action="store_true",
-                   help="Enable original ViTTA (BN + entropy, full-weight)")
-    p.add_argument("--ViTTA_Adapters", action="store_true",
-                   help="Enable ViTTA-Adapters (backbone frozen, only adapters updated)")
-
-    # Shared ViTTA hyper-parameters
-    p.add_argument("--vitta_clips",  type=int,   default=4,   help="Temporal clips for ViTTA")
-    p.add_argument("--vitta_steps",  type=int,   default=1,   help="Gradient steps per video")
-    p.add_argument("--vitta_lr",     type=float, default=1e-4, help="ViTTA adaptation LR")
-
-    # ViTTA-Adapters specific hyper-parameters
-    p.add_argument("--adapter_rank",   type=int,   default=64,
-                   help="Bottleneck dim r for adapters (proposal default=64)")
-    p.add_argument("--adapter_lr",     type=float, default=1e-4,
-                   help="Adapter-only learning rate (try 1e-4 or 5e-4)")
-    p.add_argument("--adapter_wd",     type=float, default=1e-4,
-                   help="Adapter weight decay")
-    p.add_argument("--adapter_micro_steps", type=int, default=1,
-                   help="Micro gradient steps per video (1 or 3)")
-    p.add_argument("--adapter_lambda", type=float, default=0.1,
-                   help="λ weight for consistency loss (same as ViTTA paper)")
+    # Inference / TTA
+    p.add_argument("--ViTTA",       action="store_true",   help="Enable ViTTA at test time")
+    p.add_argument("--vitta_clips", type=int,   default=8,  help="Temporal clips for ViTTA")
+    p.add_argument("--vitta_steps", type=int,   default=3,  help="Gradient steps for ViTTA entropy min")
+    p.add_argument("--vitta_lr",    type=float, default=5e-5,help="ViTTA adaptation learning rate")
 
     # Mode
-    p.add_argument("--mode",         default="train_eval",
+    p.add_argument("--mode",        default="train_eval",
                    choices=["train_eval","eval_only"],
                    help="train_eval: train then evaluate; eval_only: load weights and evaluate")
-    p.add_argument("--load_weights", type=Path, default=None,
-                   help="Path to .pth file for eval_only mode")
+    p.add_argument("--load_weights",type = Path, default=None, help="Path to .pth file for eval_only mode")
     return p
 
 
@@ -203,6 +202,10 @@ def build_transforms(img_size, train=True):
         return T.Compose([
             T.ToPILImage(),
             T.Resize((img_size + 16, img_size + 16)),
+            # T.Resize((img_size, img_size)),
+            # T.RandomCrop(img_size),
+            # T.RandomHorizontalFlip(),
+            # T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
             T.ToTensor(),
             T.Normalize(MEAN, STD),
         ])
@@ -236,6 +239,7 @@ class VideoDataset(Dataset):
     def __getitem__(self, idx):
         frames = sample_frames(self.video_paths[idx], self.num_frames)
         if not frames:
+            # Return zeros if video unreadable
             dummy = torch.zeros(self.num_frames, 3,
                                 self.transform.transforms[1].size[0],
                                 self.transform.transforms[1].size[0])
@@ -292,11 +296,13 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
     if "mobilenet_v3" in model_name:
         weights = "DEFAULT" if pretrained else None
         net = constructor(weights=weights)
+        # Strip the classifier; keep feature extractor → output is (B, feat_dim)
         backbone = nn.Sequential(
             net.features,
             net.avgpool,
             nn.Flatten(),
         )
+        # Verify feat_dim with a dry run
         with torch.no_grad():
             probe = backbone(torch.zeros(1, 3, 112, 112))
         actual_dim = probe.shape[1]
@@ -317,6 +323,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
     elif "resnet" in model_name or "resnext" in model_name:
         weights = "DEFAULT" if pretrained else None
         net = constructor(weights=weights)
+        # Remove FC
         backbone = nn.Sequential(*list(net.children())[:-1], nn.Flatten())
         with torch.no_grad():
             probe = backbone(torch.zeros(1, 3, 112, 112))
@@ -326,6 +333,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
     else:
         weights = "DEFAULT" if pretrained else None
         net = constructor(weights=weights)
+        # Try to remove last linear layer
         if hasattr(net, "fc"):
             net.fc = nn.Identity()
         elif hasattr(net, "classifier"):
@@ -345,127 +353,8 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
 
 
 # ─────────────────────────────────────────────────────────────
-# 6a.  ADAPTER MODULE
-#      Bottleneck residual adapter: Linear(C→r) → GELU → Linear(r→C)
-#      Inserted after the feature map at chosen backbone positions.
-#      Backbone stays frozen; only adapter weights are updated at TTA.
-# ─────────────────────────────────────────────────────────────
-class BottleneckAdapter(nn.Module):
-    """
-    Lightweight residual adapter for CNN feature maps.
-
-    For a feature tensor of shape (B, C, H, W) or (B, C):
-      out = x + Linear(r→C)(GELU(Linear(C→r)(x)))
-
-    This is the 'MLP adapter' style, treating channel dimension
-    as the feature axis (works after global pooling too).
-
-    r = bottleneck rank (default 64 per the proposal).
-    """
-    def __init__(self, in_channels: int, rank: int = 64):
-        super().__init__()
-        r = max(rank, max(32, in_channels // 8))   # safety floor
-        self.down   = nn.Linear(in_channels, r, bias=True)
-        self.act    = nn.GELU()
-        self.up     = nn.Linear(r, in_channels, bias=True)
-
-        # Init: near-identity at start so adapter doesn't disrupt
-        # pre-trained features before any adaptation step.
-        nn.init.normal_(self.down.weight, std=1e-3)
-        nn.init.zeros_(self.down.bias)
-        nn.init.zeros_(self.up.weight)
-        nn.init.zeros_(self.up.bias)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        x can be (B, C) — after global pooling, OR
-                  (B, C, H, W) — spatial feature map.
-        """
-        if x.dim() == 4:
-            # Spatial: permute to (B,H,W,C), apply MLP, permute back
-            B, C, H, W = x.shape
-            x_perm = x.permute(0, 2, 3, 1)          # (B,H,W,C)
-            residual = self.up(self.act(self.down(x_perm)))
-            return x + residual.permute(0, 3, 1, 2)  # (B,C,H,W)
-        else:
-            # Vector: (B, C)
-            return x + self.up(self.act(self.down(x)))
-
-
-# ─────────────────────────────────────────────────────────────
-# 6b.  AdaptedBackbone — wraps a Sequential backbone and
-#      injects adapters after the last-two indexable blocks.
-#
-#      Design choice: We probe the backbone's nn.Sequential
-#      children to find the last two "block-like" modules
-#      (anything that is not Flatten / Pool / BN).
-#      Adapters are placed as residual additions after those blocks.
-# ─────────────────────────────────────────────────────────────
-class AdaptedBackbone(nn.Module):
-    """
-    Wraps an existing backbone (nn.Sequential or nn.Module).
-    Identifies the last two 'heavy' sub-modules and inserts a
-    BottleneckAdapter after each one.
-
-    The backbone weights are NOT modified; adapters are separate
-    parameters that can be trained independently.
-    """
-
-    def __init__(self, backbone: nn.Module, rank: int = 64):
-        super().__init__()
-        self.backbone = backbone
-        self.rank     = rank
-
-        # ── Discover backbone output channel dimension ─────────
-        # Must place probe on the same device as backbone weights.
-        _probe_device = next(backbone.parameters()).device
-        with torch.no_grad():
-            sample = torch.zeros(1, 3, 112, 112, device=_probe_device)
-            out    = backbone(sample)            # (1, C) or (1,C,H,W)
-        out_channels = out.shape[1]              # channel dim after backbone
-
-        # ── Insert adapters after last-two blocks ──────────────
-        # We walk the children of the FIRST module inside the Sequential
-        # (usually `net.features`) because that holds the block structure.
-        # For backbones we know (MobileNetV3/EfficientNet/ResNet), the
-        # outermost Sequential is backbone[0] = net.features.
-
-        self.adapter_penultimate = BottleneckAdapter(out_channels, rank)
-        self.adapter_last        = BottleneckAdapter(out_channels, rank)
-
-        # Count adapter params for logging
-        n_adapter = sum(p.numel() for p in self.adapter_parameters())
-        n_total   = sum(p.numel() for p in backbone.parameters())
-        print(f"[Adapters] Backbone params      : {n_total:>10,}")
-        print(f"[Adapters] Adapter params (2×)  : {n_adapter:>10,}  "
-              f"({100.*n_adapter/n_total:.3f}% of backbone)")
-
-    def adapter_parameters(self):
-        """Return only adapter parameters (used for optimizer)."""
-        return (list(self.adapter_penultimate.parameters()) +
-                list(self.adapter_last.parameters()))
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        We run the backbone, then apply adapters sequentially on
-        the final feature representation.
-
-        Because MobileNetV3 / EfficientNet / ResNet all collapse to a
-        1-D vector AFTER global pooling+flatten (the Flatten() sits
-        inside the Sequential), we hook adapters on that final vector
-        (which is the most relevant level for classification anyway).
-
-        For maximum flexibility the adapters work on both 4-D and 2-D
-        tensors (see BottleneckAdapter.forward).
-        """
-        feats = self.backbone(x)              # (B, C)  or  (B,C,H,W)
-        feats = self.adapter_penultimate(feats)
-        feats = self.adapter_last(feats)
-        return feats
-
-
-# ─────────────────────────────────────────────────────────────
-# 6c.  ViTTA — original (unchanged from base code)
+# 6.  ViTTA — Video Test-Time Adaptation
+#     Based on: https://arxiv.org/pdf/2211.15393
 # ─────────────────────────────────────────────────────────────
 class ViTTA:
     """
@@ -481,33 +370,52 @@ class ViTTA:
       3. [Optional] Minimise prediction entropy for a few gradient steps
          (entropy-based self-supervised adaptation).
       4. Aggregate predictions across clips → final class prediction.
+
+    The BN update (step 2) is the core of the ViTTA paper; steps 3-4
+    follow the general TTA / TTT literature cited therein.
     """
 
     def __init__(self, model: nn.Module, n_clips: int = 4,
                  adapt_steps: int = 1, adapt_lr: float = 1e-4,
+                  conf_threshold: float = 0.7,
                  device: torch.device = torch.device("cpu")):
         self.original_model = model
         self.n_clips        = n_clips
         self.adapt_steps    = adapt_steps
         self.adapt_lr       = adapt_lr
         self.device         = device
+        self.conf_threshold = conf_threshold
 
+    # ── Internal helpers ───────────────────────────────────────────────────────
     @staticmethod
     def _copy_model_to_adapt(model):
         """
         Deep-copy and configure for BN-only adaptation.
+
+        WHY module-type check instead of name-string matching:
+        Many backbones (MobileNetV3, EfficientNet, …) store BatchNorm layers
+        under purely numeric keys like 'backbone.0.0.1.weight', so substring
+        checks for 'bn' / 'norm' find nothing and leave zero trainable params,
+        causing the Adam optimizer to raise 'empty parameter list'.
+
+        Fix: collect the exact parameter names that belong to BatchNorm
+        modules by iterating named_modules(), then enable grad only for those.
         """
         adapted = copy.deepcopy(model)
-        adapted.train()
+        adapted.train()    # puts BN layers into train mode → use batch stats
 
+        # 1. Collect all param names that live inside a BatchNorm module
         bn_param_names = set()
         for mod_name, module in adapted.named_modules():
             if isinstance(module, nn.modules.batchnorm._BatchNorm):
+                # Each BN module has 'weight' and 'bias' as direct params
                 for param_name, _ in module.named_parameters(recurse=False):
                     full_name = f"{mod_name}.{param_name}" if mod_name else param_name
                     bn_param_names.add(full_name)
 
         if not bn_param_names:
+            # Fallback: if the backbone has no BN at all (rare), allow the
+            # classifier head to be adapted instead so the optimizer is never empty.
             print("[ViTTA] ⚠  No BatchNorm layers found — falling back to "
                   "classifier-head adaptation.")
             for mod_name, module in adapted.named_modules():
@@ -516,9 +424,16 @@ class ViTTA:
                         full_name = f"{mod_name}.{param_name}" if mod_name else param_name
                         bn_param_names.add(full_name)
 
+        # 2. Freeze everything; unfreeze only the identified params
         for name, param in adapted.named_parameters():
-            param.requires_grad_(name in bn_param_names)
+            if name in bn_param_names:
+                param.requires_grad_(True)
+            else:
+                param.requires_grad_(False)
 
+        n_trainable = sum(p.numel() for p in adapted.parameters() if p.requires_grad)
+        # print(f"[ViTTA] Adapting {len(bn_param_names)} BN param tensors "
+            #   f"({n_trainable:,} scalars) at test time.")
         return adapted
 
     @staticmethod
@@ -526,14 +441,23 @@ class ViTTA:
         probs = torch.softmax(logits, dim=-1)
         return -(probs * torch.log(probs + 1e-8)).sum(dim=-1).mean()
 
+    # ── BN statistics update (core ViTTA) ─────────────────────────────────────
     def _update_bn(self, adapted_model, clip_tensors):
+        """
+        Pass all clips through the model in train() mode so that
+        BN running_mean / running_var are updated from test distribution.
+        No gradients needed; this is purely a forward-pass statistics update.
+        """
         with torch.no_grad():
             for clip in clip_tensors:
                 adapted_model(clip.unsqueeze(0).to(self.device))
 
+    # ── Entropy minimisation (optional self-supervised step) ──────────────────
     def _entropy_min(self, adapted_model, clip_tensors):
         trainable_params = [p for p in adapted_model.parameters() if p.requires_grad]
         if not trainable_params:
+            # Safety net: should never happen after the fixed _copy_model_to_adapt,
+            # but skip silently rather than crash.
             print("[ViTTA] ⚠  _entropy_min skipped — no trainable params found.")
             return
         opt = optim.Adam(trainable_params, lr=self.adapt_lr)
@@ -541,227 +465,20 @@ class ViTTA:
             logits_list = []
             for clip in clip_tensors:
                 logits_list.append(adapted_model(clip.unsqueeze(0).to(self.device)))
-            logits_all = torch.cat(logits_list, dim=0)
+            logits_all = torch.cat(logits_list, dim=0)   # (n_clips, C)
             loss = self._entropy(logits_all)
             opt.zero_grad()
             loss.backward()
             opt.step()
 
+    # ── Public inference method ────────────────────────────────────────────────
     def predict(self, video_path: str, num_frames: int,
                 transform, label: int = -1):
         """
         Runs ViTTA inference on one video.
         Returns (pred_class, confidence, entropy_value).
         """
-        clips_frames = temporal_clips(video_path, num_frames, self.n_clips)
-
-        clip_tensors = []
-        for frames in clips_frames:
-            if not frames:
-                continue
-            tensors = []
-            for f in frames:
-                rgb = cv2.cvtColor(f, cv2.COLOR_BGR2RGB)
-                tensors.append(transform(rgb))
-            clip_tensors.append(torch.stack(tensors, dim=0))
-
-        if not clip_tensors:
-            return 0, 0.0, 0.0
-
-        adapted = self._copy_model_to_adapt(self.original_model)
-        adapted.to(self.device)
-
-        self._update_bn(adapted, clip_tensors)
-
-        if self.adapt_steps > 0:
-            self._entropy_min(adapted, clip_tensors)
-
-        adapted.eval()
-        with torch.no_grad():
-            all_probs = []
-            for clip in clip_tensors:
-                logits = adapted(clip.unsqueeze(0).to(self.device))
-                all_probs.append(torch.softmax(logits, dim=-1))
-            avg_probs = torch.stack(all_probs, dim=0).mean(dim=0)
-            pred      = avg_probs.argmax(dim=-1).item()
-            conf      = avg_probs.max().item()
-            ent       = self._entropy(torch.log(avg_probs + 1e-8)).item()
-
-        return pred, conf, ent
-
-
-# ─────────────────────────────────────────────────────────────
-# 6d.  ViTTA-Adapters — NEW METHOD
-#
-#  Key differences from original ViTTA:
-#  1. The backbone is COMPLETELY FROZEN — no BN updates, no weight
-#     changes whatsoever.
-#  2. Small BottleneckAdapters are inserted after the last-two
-#     feature blocks (inside AdaptedBackbone).
-#  3. Only adapter parameters are optimised at test time.
-#  4. Loss = entropy (same as ViTTA's entropy-min step) +
-#            λ * consistency (agreement across temporal clips).
-#     — This is equivalent to ViTTA's L_align + L_consistency
-#       framing from the paper, but applied to adapter outputs.
-#  5. EMA: because backbone is frozen, no EMA for BN statistics
-#     is needed. However, we keep adapter state across the test
-#     run (online continual adaptation) as suggested in the proposal.
-# ─────────────────────────────────────────────────────────────
-class ViTTA_Adapters:
-    """
-    ViTTA-Adapters: Test-Time Adaptation via lightweight bottleneck
-    adapters inserted into the last two backbone blocks.
-
-    Only adapter parameters are updated at test time.
-    Backbone weights remain completely frozen.
-
-    Loss:
-        L = H(avg_logits)                   ← entropy minimisation
-          + λ * mean_pairwise_KL(clips)     ← temporal consistency
-
-    This matches the spirit of ViTTA's dual-loss formulation while
-    restricting gradient flow to the tiny adapter submodule.
-    """
-
-    def __init__(self,
-                 model      : nn.Module,
-                 rank       : int   = 64,
-                 n_clips    : int   = 4,
-                 micro_steps: int   = 1,
-                 adapter_lr : float = 1e-4,
-                 adapter_wd : float = 1e-4,
-                 lambda_cons: float = 0.1,
-                 device     : torch.device = torch.device("cpu")):
-
-        self.n_clips     = n_clips
-        self.micro_steps = micro_steps
-        self.adapter_lr  = adapter_lr
-        self.adapter_wd  = adapter_wd
-        self.lambda_cons = lambda_cons
-        self.device      = device
-        self.rank        = rank
-
-        # ── Build an AdaptedModel once and keep it across videos ──
-        # This enables online / continual adaptation: adapters accumulate
-        # experience across the test stream (no reset per video).
-        self.adapted_model = self._build_adapted_model(model)
-        self.adapted_model.to(device)
-
-        n_adapted = sum(
-            p.numel() for p in self.adapted_model.parameters()
-            if p.requires_grad
-        )
-        n_total = sum(p.numel() for p in self.adapted_model.parameters())
-        print(f"[ViTTA-Adapters] Total model params   : {n_total:>10,}")
-        print(f"[ViTTA-Adapters] Trainable (adapters) : {n_adapted:>10,}  "
-              f"({100.*n_adapted/n_total:.3f}%)")
-
-    # ── Build adapted model: inject adapters, freeze backbone ─────────────────
-    def _build_adapted_model(self, model: nn.Module) -> nn.Module:
-        """
-        Deep-copy the original FrameAggregator.
-        Replace its backbone with an AdaptedBackbone wrapper.
-        Freeze everything except adapter parameters.
-        """
-        adapted = copy.deepcopy(model)
-
-        # Wrap the backbone in AdaptedBackbone
-        original_backbone = adapted.backbone
-        adapted.backbone  = AdaptedBackbone(original_backbone, rank=self.rank)
-
-        # Freeze ALL parameters first
-        for p in adapted.parameters():
-            p.requires_grad_(False)
-
-        # Unfreeze ONLY adapter parameters
-        for p in adapted.backbone.adapter_parameters():
-            p.requires_grad_(True)
-
-        return adapted
-
-    # ── Loss helpers ──────────────────────────────────────────────────────────
-    @staticmethod
-    def _entropy(logits: torch.Tensor) -> torch.Tensor:
-        """Shannon entropy of softmax distribution (lower = more confident)."""
-        probs = torch.softmax(logits, dim=-1)
-        return -(probs * torch.log(probs + 1e-8)).sum(dim=-1).mean()
-
-    @staticmethod
-    def _kl_div(p_logits: torch.Tensor, q_logits: torch.Tensor) -> torch.Tensor:
-        """Symmetric KL divergence between two logit vectors."""
-        p = torch.softmax(p_logits, dim=-1)
-        q = torch.softmax(q_logits, dim=-1)
-        kl_pq = (p * (torch.log(p + 1e-8) - torch.log(q + 1e-8))).sum(dim=-1)
-        kl_qp = (q * (torch.log(q + 1e-8) - torch.log(p + 1e-8))).sum(dim=-1)
-        return (kl_pq + kl_qp).mean() * 0.5
-
-    def _consistency_loss(self, logits_list):
-        """
-        Temporal consistency loss: mean pairwise symmetric KL across clips.
-        Penalises disagreement between temporal views of the same video.
-        Equivalent to ViTTA's L_consistency.
-        """
-        if len(logits_list) < 2:
-            return torch.tensor(0.0, device=self.device)
-        total, count = 0.0, 0
-        for i in range(len(logits_list)):
-            for j in range(i + 1, len(logits_list)):
-                total += self._kl_div(logits_list[i], logits_list[j])
-                count += 1
-        return total / count if count > 0 else torch.tensor(0.0, device=self.device)
-
-    # ── Per-video adaptation step ─────────────────────────────────────────────
-    def _adapt_on_video(self, clip_tensors):
-        """
-        Run micro_steps of AdamW on adapter params using the
-        combined entropy + consistency loss.
-        """
-        adapter_params = [p for p in self.adapted_model.parameters()
-                          if p.requires_grad]
-        if not adapter_params:
-            return  # Should never happen
-
-        opt = optim.AdamW(adapter_params,
-                          lr=self.adapter_lr,
-                          weight_decay=self.adapter_wd)
-
-        self.adapted_model.train()
-
-        # Determine effective number of steps:
-        # If confidence is low (high entropy) on first forward pass,
-        # allow up to micro_steps; otherwise 1 step.
-        for step_i in range(self.micro_steps):
-            logits_list = []
-            for clip in clip_tensors:
-                inp     = clip.unsqueeze(0).to(self.device)
-                logits  = self.adapted_model(inp)         # (1, num_classes)
-                logits_list.append(logits)
-
-            # L_entropy: minimise prediction uncertainty
-            logits_all = torch.cat(logits_list, dim=0)   # (n_clips, C)
-            l_entropy  = self._entropy(logits_all)
-
-            # L_consistency: force temporal clip agreement
-            l_cons = self._consistency_loss(logits_list)
-
-            loss = l_entropy + self.lambda_cons * l_cons
-
-            opt.zero_grad()
-            loss.backward()
-            opt.step()
-
-    # ── Public inference method ───────────────────────────────────────────────
-    def predict(self, video_path: str, num_frames: int,
-                transform, label: int = -1):
-        """
-        ViTTA-Adapters inference on one video.
-        Returns (pred_class, confidence, entropy_value).
-
-        Adapter state is NOT reset between videos (online adaptation).
-        """
-        t0 = time.time()
-
-        # 1. Sample temporal clips
+        # 1. Sample diverse temporal clips
         clips_frames = temporal_clips(video_path, num_frames, self.n_clips)
 
         clip_tensors = []
@@ -777,23 +494,36 @@ class ViTTA_Adapters:
         if not clip_tensors:
             return 0, 0.0, 0.0
 
-        # 2. Adapter adaptation step(s) — backbone stays frozen
-        self._adapt_on_video(clip_tensors)
+        # 2. Build per-video adapted model
+        adapted = self._copy_model_to_adapt(self.original_model)
+        adapted.to(self.device)
 
-        # 3. Aggregate predictions in eval mode
-        self.adapted_model.eval()
+        # 3. Update BN statistics from test clips (core ViTTA step)
+        self._update_bn(adapted, clip_tensors)
+
+        # 4. Optional entropy minimisation
+        adapted.eval()
+        with torch.no_grad():
+            logits = adapted(clip_tensors[0].unsqueeze(0).to(self.device))
+            probs = torch.softmax(logits, dim=-1)
+            confidence = probs.max().item()
+
+        if self.adapt_steps > 0 and confidence > self.conf_threshold:
+            self._entropy_min(adapted, clip_tensors)
+
+        # 5. Aggregate predictions in eval mode
+        adapted.eval()
         with torch.no_grad():
             all_probs = []
             for clip in clip_tensors:
-                logits = self.adapted_model(clip.unsqueeze(0).to(self.device))
+                logits = adapted(clip.unsqueeze(0).to(self.device))   # (1,C)
                 all_probs.append(torch.softmax(logits, dim=-1))
-            avg_probs = torch.stack(all_probs, dim=0).mean(dim=0)   # (1, C)
+            avg_probs = torch.stack(all_probs, dim=0).mean(dim=0)     # (1,C)
             pred      = avg_probs.argmax(dim=-1).item()
             conf      = avg_probs.max().item()
             ent       = self._entropy(torch.log(avg_probs + 1e-8)).item()
 
-        adapt_time = time.time() - t0
-        return pred, conf, ent, adapt_time
+        return pred, conf, ent
 
 
 # ─────────────────────────────────────────────────────────────
@@ -804,6 +534,7 @@ def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
     total_loss, correct, total = 0.0, 0, 0
     t0 = time.time()
     for step, (clips, labels) in enumerate(loader):
+        # print(f"  [Epoch {epoch}] Step {step+1}/{len(loader)} ...", end="\r")
         clips, labels = clips.to(device), labels.to(device)
         optimizer.zero_grad()
         logits = model(clips)
@@ -867,27 +598,18 @@ def save_checkpoint(model, optimizer, epoch, path):
 def main():
     args = build_parser().parse_args()
 
-    # Validate TTA flags
-    if args.ViTTA and args.ViTTA_Adapters:
-        raise ValueError("--ViTTA and --ViTTA_Adapters are mutually exclusive. "
-                         "Pick one.")
-
     # ── Reproducibility ──────────────────────────────────────
     random.seed(args.split_seed)
     np.random.seed(args.split_seed)
     torch.manual_seed(args.split_seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tta_mode = ("ViTTA-Adapters" if args.ViTTA_Adapters
-                else "ViTTA" if args.ViTTA
-                else "DISABLED")
-
     print(f"\n{'='*60}")
     print(f"  Action Recognition — UCF50  (device: {device})")
     if torch.cuda.is_available():
         print(f"  GPU: {torch.cuda.get_device_name(0)}")
         print(f"  VRAM: {torch.cuda.get_device_properties(0).total_memory/1e9:.2f} GB")
-    print(f"  TTA mode: {tta_mode}")
+    print(f"  ViTTA: {'ENABLED' if args.ViTTA else 'DISABLED'}")
     print(f"{'='*60}\n")
 
     os.makedirs(args.ckpt_dir, exist_ok=True)
@@ -902,24 +624,30 @@ def main():
     print(f"[DATA] Clean videos: {len(clean_paths)}")
     print(f"[DATA] Mixed videos: {len(mixed_paths)}")
 
+    # --- Verify same number of videos & same class structure ---
     assert len(clean_paths) == len(mixed_paths), \
         "UCF50 and UCF50_mixed must have the same number of videos!"
     assert clean_labels == mixed_labels, \
         "Label lists must match between UCF50 and UCF50_mixed!"
 
+    # --- Unified stratified split (same indices for both datasets) ---
     print(f"[DATA] Stratified 70-30 split (seed={args.split_seed}) …")
     train_idx, test_idx = stratified_split(
         clean_paths, clean_labels, args.test_ratio, args.split_seed
     )
 
+    # TRAIN: from clean UCF50 (70 %)
     train_paths  = [clean_paths[i] for i in train_idx]
     train_labels = [clean_labels[i] for i in train_idx]
-    test_paths   = [mixed_paths[i]  for i in test_idx]
+
+    # TEST: from mixed UCF50_mixed (30 %)  — SAME indices → no overlap
+    test_paths   = [mixed_paths[i] for i in test_idx]
     test_labels  = [mixed_labels[i] for i in test_idx]
 
     print(f"[DATA] Train samples: {len(train_paths)}")
     print(f"[DATA] Test  samples: {len(test_paths)}")
 
+    # Per-class distribution check
     from collections import Counter
     tr_dist = Counter(train_labels)
     te_dist = Counter(test_labels)
@@ -976,16 +704,19 @@ def main():
             print(f"    Test  → Loss: {val_loss:.4f} | Acc: {val_acc:.2f}%")
             print(f"    LR    = {scheduler.get_last_lr()[0]:.6f}")
 
+            # Save best weights
             if val_acc > best_acc:
                 best_acc = val_acc
                 torch.save(model.state_dict(), args.best_model)
                 print(f"    ★ New best model saved → {args.best_model} (Acc={best_acc:.2f}%)")
 
+            # Intermediate checkpoint
             if epoch % args.save_every == 0:
                 ckpt_path = os.path.join(args.ckpt_dir, f"epoch_{epoch:03d}.pth")
                 save_checkpoint(model, optimizer, epoch, ckpt_path)
 
         print(f"\n[TRAIN DONE] Best Test Accuracy: {best_acc:.2f}%")
+        # Load best weights for evaluation
         model.load_state_dict(torch.load(args.best_model, map_location=device))
 
     elif args.mode == "eval_only":
@@ -996,11 +727,11 @@ def main():
 
     # ── Step 5: Final Evaluation ──────────────────────────────
     print(f"\n{'='*60}")
-    print(f"  EVALUATION  (TTA={tta_mode})")
+    print(f"  EVALUATION  (ViTTA={'ON' if args.ViTTA else 'OFF'})")
     print(f"{'='*60}\n")
 
-    # ── 5a: No TTA ───────────────────────────────────────────
-    if not args.ViTTA and not args.ViTTA_Adapters:
+    if not args.ViTTA:
+        # Standard evaluation via DataLoader
         model.eval()
         test_loss, test_acc, class_correct, class_total = evaluate(
             model, test_loader, criterion, device
@@ -1015,8 +746,8 @@ def main():
             print(f"  {cname:<30} {cc:>3}/{ct:>3} = {pct:5.1f}%")
         print(f"\n[RESULT] Overall Accuracy: {test_acc:.2f}%")
 
-    # ── 5b: Original ViTTA ────────────────────────────────────
-    elif args.ViTTA:
+    else:
+        # ViTTA evaluation — per-video inference
         print(f"[ViTTA] Running per-video adapted inference …")
         print(f"[ViTTA] n_clips={args.vitta_clips} | "
               f"adapt_steps={args.vitta_steps} | "
@@ -1062,77 +793,6 @@ def main():
             pct = (cc / ct * 100) if ct > 0 else 0.0
             print(f"  {cname:<30} {cc:>3}/{ct:>3} = {pct:5.1f}%")
         print(f"\n[RESULT] Overall ViTTA Accuracy: {test_acc:.2f}%")
-
-    # ── 5c: ViTTA-Adapters (NEW METHOD) ──────────────────────
-    elif args.ViTTA_Adapters:
-        print(f"[ViTTA-Adapters] Running per-video adapter-based TTA …")
-        print(f"[ViTTA-Adapters] n_clips={args.vitta_clips} | "
-              f"micro_steps={args.adapter_micro_steps} | "
-              f"adapter_lr={args.adapter_lr} | "
-              f"adapter_wd={args.adapter_wd} | "
-              f"rank={args.adapter_rank} | "
-              f"λ_cons={args.adapter_lambda}")
-
-        vitta_adapters_engine = ViTTA_Adapters(
-            model       = model,
-            rank        = args.adapter_rank,
-            n_clips     = args.vitta_clips,
-            micro_steps = args.adapter_micro_steps,
-            adapter_lr  = args.adapter_lr,
-            adapter_wd  = args.adapter_wd,
-            lambda_cons = args.adapter_lambda,
-            device      = device,
-        )
-
-        correct       = 0
-        total         = 0
-        class_correct = defaultdict(int)
-        class_total   = defaultdict(int)
-        entropy_list  = []
-        adapt_times   = []
-
-        for idx, (vpath, vlabel) in enumerate(zip(test_paths, test_labels)):
-            pred, conf, ent, adapt_time = vitta_adapters_engine.predict(
-                vpath, args.num_frames, test_tf
-            )
-            correct += int(pred == vlabel)
-            total   += 1
-            class_correct[vlabel] += int(pred == vlabel)
-            class_total[vlabel]   += 1
-            entropy_list.append(ent)
-            adapt_times.append(adapt_time)
-
-            if (idx + 1) % 20 == 0 or (idx + 1) == len(test_paths):
-                running_acc = correct / total * 100.0
-                print(f"  [ViTTA-Adapters] {idx+1}/{len(test_paths)} | "
-                      f"Running Acc: {running_acc:.2f}% | "
-                      f"AvgEnt: {np.mean(entropy_list):.4f} | "
-                      f"AvgAdaptTime: {np.mean(adapt_times):.3f}s")
-
-        test_acc = correct / total * 100.0
-        n_adapted_params = sum(
-            p.numel() for p in vitta_adapters_engine.adapted_model.parameters()
-            if p.requires_grad
-        )
-        n_total_params = sum(
-            p.numel() for p in vitta_adapters_engine.adapted_model.parameters()
-        )
-
-        print(f"\n[RESULT] ViTTA-Adapters Test Accuracy  : {test_acc:.2f}%")
-        print(f"[RESULT] Mean Prediction Entropy        : {np.mean(entropy_list):.4f}")
-        print(f"[RESULT] Accuracy Std (stability proxy) : {np.std([int(pred==lbl) for pred,lbl in zip([class_correct[l] for l in range(num_classes)], [class_total[l] for l in range(num_classes)])]):.4f}")
-        print(f"[RESULT] Mean per-video adapt time      : {np.mean(adapt_times):.4f}s")
-        print(f"[RESULT] Total adapt time               : {sum(adapt_times):.2f}s")
-        print(f"[RESULT] Adapted params                 : {n_adapted_params:,}  "
-              f"({100.*n_adapted_params/n_total_params:.3f}% of model)")
-
-        print(f"\n[RESULT] Per-class Accuracy (ViTTA-Adapters):")
-        for cid, cname in enumerate(class_names):
-            ct  = class_total.get(cid, 0)
-            cc  = class_correct.get(cid, 0)
-            pct = (cc / ct * 100) if ct > 0 else 0.0
-            print(f"  {cname:<30} {cc:>3}/{ct:>3} = {pct:5.1f}%")
-        print(f"\n[RESULT] Overall ViTTA-Adapters Accuracy: {test_acc:.2f}%")
 
     print(f"\n{'='*60}")
     print("  DONE.")

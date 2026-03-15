@@ -3,7 +3,7 @@
 ============================================================
 Action Recognition on UCF50 / UCF50_mixed Dataset
 with ViTTA (CVPR-2023) AND RMGA (Rhythmic Motion-Gated
-Adaptation - novel TTA) Support
+Adaptation — novel TTA) Support
 ============================================================
 
 Paper References:
@@ -18,10 +18,11 @@ Dataset : UCF50 (action recognition, 50 classes)
 Default : MobileNetV3-Small (lightweight, RTX-3050 friendly)
 ============================================================
 
+SWAP THE MODEL  — only change the 3 lines below:
 """
 
 # ============================================================
-#  MODEL SWAP ZONE -   change only these 3 lines for a new backbone
+# ⚙️  MODEL SWAP ZONE — change only these 3 lines for a new backbone
 MODEL_NAME   = "mobilenet_v3_small"               # torchvision model function name
 FEATURE_DIM  = 576                                 # channels coming out of backbone (before head)
 PRETRAINED   = True                                # use ImageNet pretrained weights
@@ -53,27 +54,27 @@ CLEAN_DIR = Path("./datasets/UCF50")         # Uncorrupted videos for training
 MIXED_DIR = Path("./datasets/UCF50_mixed")  # Corrupted videos for testing
 
 
-#                                                              
+# ─────────────────────────────────────────────────────────────
 # 1.  ARGUMENT PARSER
-#                                                              
+# ─────────────────────────────────────────────────────────────
 
 def build_parser():
     p = argparse.ArgumentParser(
         description="UCF50 Action Recognition with ViTTA and/or RMGA TTA"
     )
-    #    Paths                                                  
+    # ── Paths ─────────────────────────────────────────────────
     p.add_argument("--clean_dir",   default=CLEAN_DIR, help="Clean video folder (uncorrupted)")
     p.add_argument("--mixed_dir",   default=MIXED_DIR, help="Corrupted video folder")
     p.add_argument("--ckpt_dir",    default="checkpoints", help="Directory to save checkpoints")
     p.add_argument("--best_model",  default="best_model.pth", help="Path for best model weights")
 
-    #    Data                                                   
+    # ── Data ──────────────────────────────────────────────────
     p.add_argument("--num_frames",  type=int,   default=16,   help="Frames sampled per video")
     p.add_argument("--img_size",    type=int,   default=112,  help="Spatial resolution (H=W)")
     p.add_argument("--split_seed",  type=int,   default=42,   help="Seed for 70-30 split")
     p.add_argument("--test_ratio",  type=float, default=0.30)
 
-    #    Training                                               
+    # ── Training ──────────────────────────────────────────────
     p.add_argument("--epochs",       type=int,   default=40)
     p.add_argument("--batch_size",   type=int,   default=16)
     p.add_argument("--lr",           type=float, default=1e-3)
@@ -81,13 +82,13 @@ def build_parser():
     p.add_argument("--num_workers",  type=int,   default=4)
     p.add_argument("--save_every",   type=int,   default=5,   help="Save checkpoint every N epochs")
 
-    #    ViTTA                                                  
+    # ── ViTTA ─────────────────────────────────────────────────
     p.add_argument("--ViTTA",        action="store_true",     help="Enable ViTTA at test time")
     p.add_argument("--vitta_clips",  type=int,   default=4,   help="Temporal clips for ViTTA")
     p.add_argument("--vitta_steps",  type=int,   default=1,   help="Gradient steps for ViTTA entropy min")
     p.add_argument("--vitta_lr",     type=float, default=1e-4, help="ViTTA adaptation learning rate")
 
-    #    RMGA                                             
+    # ── RMGA (NEW) ────────────────────────────────────────────
     p.add_argument("--RMGA",         action="store_true",
                    help="Enable RMGA (Rhythmic Motion-Gated Adaptation) at test time")
     p.add_argument("--rmga_window",  type=int,   default=8,
@@ -101,11 +102,11 @@ def build_parser():
     p.add_argument("--rmga_last_blocks", type=int, default=3,
                    help="[RMGA] Number of last BN blocks to adapt (selective adaptation)")
     p.add_argument("--rmga_fp16",    action="store_true",
-                   help="[RMGA] Use FP16 (torch.cuda.amp) -   halves VRAM on RTX-3050")
+                   help="[RMGA] Use FP16 (torch.cuda.amp) — halves VRAM on RTX-3050")
     p.add_argument("--rmga_extra_clips", type=int, default=2,
                    help="[RMGA] Extra diverse clips for initial BN-stats warm-up (like ViTTA)")
 
-    #    Mode                                                   
+    # ── Mode ──────────────────────────────────────────────────
     p.add_argument("--mode",         default="train_eval",
                    choices=["train_eval", "eval_only"],
                    help="train_eval: train then evaluate; eval_only: load weights and evaluate")
@@ -114,9 +115,9 @@ def build_parser():
     return p
 
 
-#                                                              
+# ─────────────────────────────────────────────────────────────
 # 2.  DATASET HELPERS
-#                                                              
+# ─────────────────────────────────────────────────────────────
 MEAN = [0.485, 0.456, 0.406]
 STD  = [0.229, 0.224, 0.225]
 
@@ -214,9 +215,9 @@ def temporal_clips(video_path: str, num_frames: int, n_clips: int):
     return clips
 
 
-#                                                              
+# ─────────────────────────────────────────────────────────────
 # 3.  TRANSFORMS
-#                                                              
+# ─────────────────────────────────────────────────────────────
 def build_transforms(img_size, train=True):
     if train:
         return T.Compose([
@@ -234,9 +235,9 @@ def build_transforms(img_size, train=True):
         ])
 
 
-#                                                              
+# ─────────────────────────────────────────────────────────────
 # 4.  PYTORCH DATASET
-#                                                              
+# ─────────────────────────────────────────────────────────────
 class VideoDataset(Dataset):
     """
     Loads a list of video paths and labels.
@@ -269,9 +270,9 @@ class VideoDataset(Dataset):
         return clip, self.labels[idx]
 
 
-#                                                              
+# ─────────────────────────────────────────────────────────────
 # 5.  MODEL BUILDER
-#                                                              
+# ─────────────────────────────────────────────────────────────
 class FrameAggregator(nn.Module):
     """
     Wraps a 2-D CNN backbone.
@@ -294,7 +295,7 @@ class FrameAggregator(nn.Module):
         x    = x.view(B * T, C, H, W)   # (B*T, C, H, W)
         feats = self.backbone(x)          # (B*T, feat_dim)
         feats = feats.view(B, T, -1)      # (B, T, feat_dim)
-        feats = feats.mean(dim=1)         # (B, feat_dim)  -   temporal pooling
+        feats = feats.mean(dim=1)         # (B, feat_dim)  — temporal pooling
         return self.classifier(feats)     # (B, num_classes)
 
 
@@ -307,7 +308,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
     print(f"\n[MODEL] Loading backbone: {model_name} (pretrained={pretrained})")
     constructor = getattr(tvm, model_name)
 
-    #    MobileNetV3                                                            
+    # ── MobileNetV3 ───────────────────────────────────────────────────────────
     if "mobilenet_v3" in model_name:
         weights  = "DEFAULT" if pretrained else None
         net      = constructor(weights=weights)
@@ -320,7 +321,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
                   f"got {actual_dim}. Auto-correcting.")
             feat_dim = actual_dim
 
-    #    EfficientNet                                                           
+    # ── EfficientNet ──────────────────────────────────────────────────────────
     elif "efficientnet" in model_name:
         weights  = "DEFAULT" if pretrained else None
         net      = constructor(weights=weights)
@@ -329,7 +330,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
             probe    = backbone(torch.zeros(1, 3, 112, 112))
         feat_dim = probe.shape[1]
 
-    #    ResNet / ResNeXt                                                       
+    # ── ResNet / ResNeXt ──────────────────────────────────────────────────────
     elif "resnet" in model_name or "resnext" in model_name:
         weights  = "DEFAULT" if pretrained else None
         net      = constructor(weights=weights)
@@ -338,7 +339,7 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
             probe    = backbone(torch.zeros(1, 3, 112, 112))
         feat_dim = probe.shape[1]
 
-    #    Generic fallback                                                       
+    # ── Generic fallback ──────────────────────────────────────────────────────
     else:
         weights = "DEFAULT" if pretrained else None
         net     = constructor(weights=weights)
@@ -360,10 +361,25 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
     return model
 
 
-#                                                              
-# 6.  ViTTA -   Video Test-Time Adaptation
-#                                                              
+# ─────────────────────────────────────────────────────────────
+# 6.  ViTTA — Video Test-Time Adaptation
+#     Based on: https://arxiv.org/pdf/2211.15393
+# ─────────────────────────────────────────────────────────────
 class ViTTA:
+    """
+    Video Test-Time Adaptation (ViTTA) as described in
+    'ViTTA: Video Test-Time Adaptation' (ECCV 2022 / arXiv 2211.15393).
+
+    Core Idea:
+    ──────────
+    At test time, for each test video:
+      1. Sample N_clips temporally diverse clips (temporal augmentation).
+      2. Update Batch Normalisation running statistics from these clips
+         (Test-Time BN adaptation — no labels needed).
+      3. [Optional] Minimise prediction entropy for a few gradient steps
+         (entropy-based self-supervised adaptation).
+      4. Aggregate predictions across clips → final class prediction.
+    """
 
     def __init__(self, model: nn.Module, n_clips: int = 4,
                  adapt_steps: int = 1, adapt_lr: float = 1e-4,
@@ -391,7 +407,7 @@ class ViTTA:
                     bn_param_names.add(full_name)
 
         if not bn_param_names:
-            print("[ViTTA] ⚠  No BatchNorm layers found -   falling back to "
+            print("[ViTTA] ⚠  No BatchNorm layers found — falling back to "
                   "classifier-head adaptation.")
             for mod_name, module in adapted.named_modules():
                 if mod_name.startswith("classifier"):
@@ -417,7 +433,7 @@ class ViTTA:
     def _entropy_min(self, adapted_model, clip_tensors):
         trainable_params = [p for p in adapted_model.parameters() if p.requires_grad]
         if not trainable_params:
-            print("[ViTTA] ⚠  _entropy_min skipped -   no trainable params found.")
+            print("[ViTTA] ⚠  _entropy_min skipped — no trainable params found.")
             return
         opt = optim.Adam(trainable_params, lr=self.adapt_lr)
         for _ in range(self.adapt_steps):
@@ -472,10 +488,41 @@ class ViTTA:
         return pred, conf, ent
 
 
-#                                                              
-# 7.  RMGA -   Rhythmic Motion-Gated Adaptation  (NEW METHOD)
-#                                                              
+# ─────────────────────────────────────────────────────────────
+# 7.  RMGA — Rhythmic Motion-Gated Adaptation  (NEW METHOD)
+# ─────────────────────────────────────────────────────────────
 class RMGA:
+    """
+    Rhythmic Motion-Gated Adaptation (RMGA) — Novel TTA for Video Action Recognition.
+
+    Motivation
+    ──────────
+    Standard TTA (e.g., ViTTA) adapts to every frame uniformly.
+    In action videos, ~80% of pixels are static background.
+    Under corruption (snow, blur, noise), the model "drift" toward
+    adapting to background noise rather than the actual action.
+
+    Two Core Innovations
+    ────────────────────
+    1. Spatio-Temporal Motion Masking
+       M_t = 𝟙(|x_t − x_{t−1}| > τ)
+       A binary mask isolates the "action pixels" from background.
+       The adaptation loss is gated by this mask — background noise
+       cannot corrupt the BN affine parameters.
+
+    2. Rhythmic Peak Anchoring
+       t* = argmin_{t ∈ W} H(y_t)
+       Within each sliding window W of `window_size` frames, only
+       the ONE frame where the model is MOST CONFIDENT (lowest entropy)
+       triggers a backward pass. This prevents error-reinforcement
+       from ambiguous / heavily corrupted frames.
+
+    Additional Efficiency Features (RTX-3050 friendly)
+    ──────────────────────────────────────────────────
+    • Selective BN adaptation   — only last `last_bn_blocks` BN layers
+    • FP16 via torch.cuda.amp   — halves VRAM during backward pass
+    • Motion-weight gating      — windows with no motion are skipped
+    """
 
     def __init__(
         self,
@@ -499,14 +546,14 @@ class RMGA:
         self.device         = device
         self.use_fp16       = use_fp16 and torch.cuda.is_available()
 
-    #    Model copy with selective BN adaptation                                
+    # ── Model copy with selective BN adaptation ───────────────────────────────
     @staticmethod
     def _copy_model_to_adapt(model: nn.Module, last_bn_blocks: int = 3):
         """
         Deep-copy and configure for SELECTIVE BN adaptation.
 
         Only the last `last_bn_blocks` BN parameter tensors are unfrozen.
-        Earlier BN layers remain frozen -   this preserves low-level feature
+        Earlier BN layers remain frozen — this preserves low-level feature
         stability and dramatically reduces backward-pass cost.
 
         Returns: (adapted_model, set_of_adapted_param_names)
@@ -531,9 +578,9 @@ class RMGA:
         else:
             selected = set()
 
-        # 3. Fallback --> classifier head if no BN found
+        # 3. Fallback → classifier head if no BN found
         if not selected:
-            print("[RMGA] ⚠  No BatchNorm layers found -   falling back to "
+            print("[RMGA] ⚠  No BatchNorm layers found — falling back to "
                   "classifier-head adaptation.")
             for mod_name, module in adapted.named_modules():
                 if mod_name.startswith("classifier"):
@@ -546,53 +593,78 @@ class RMGA:
         for name, param in adapted.named_parameters():
             param.requires_grad_(name in selected)
 
-        # n_trainable = sum(p.numel() for p in adapted.parameters() if p.requires_grad)
-        # print(f"[RMGA] Adapting {len(selected)} BN param tensors ", f"({n_trainable:,} scalars) -   last {last_bn_blocks} BN blocks.")
+        n_trainable = sum(p.numel() for p in adapted.parameters()
+                          if p.requires_grad)
+        # print(f"[RMGA] Adapting {len(selected)} BN param tensors "
+            #   f"({n_trainable:,} scalars) — last {last_bn_blocks} BN blocks.")
         return adapted, selected
 
-    #    Shannon entropy                                                        
+    # ── Shannon entropy ───────────────────────────────────────────────────────
     @staticmethod
     def _entropy(logits: torch.Tensor) -> torch.Tensor:
         """
         Compute mean Shannon entropy over a batch of logits.
-        H = -SUMMATION p(y) log p(y)
+        H = -Σ p(y) log p(y)
         """
         probs = torch.softmax(logits, dim=-1)
         return -(probs * torch.log(probs + 1e-8)).sum(dim=-1).mean()
 
-    #    Spatio-Temporal Motion Mask  M_t                                      
+    # ── Spatio-Temporal Motion Mask  M_t ─────────────────────────────────────
     @staticmethod
     def _compute_motion_mask(
-        frame_t:    torch.Tensor,   # (C, H, W) -   current frame (normalised)
-        frame_prev: torch.Tensor,   # (C, H, W) -   previous frame (normalised)
+        frame_t:    torch.Tensor,   # (C, H, W) — current frame (normalised)
+        frame_prev: torch.Tensor,   # (C, H, W) — previous frame (normalised)
         tau:        float,
     ) -> torch.Tensor:
         """
         Binary motion mask from frame differencing.
-            mask : float32 tensor of shape (1, H, W), values in {0, 1}
+
+        M_t = 𝟙( mean_C |x_t − x_{t−1}| > τ )
+
+        Args:
+            frame_t    : current  frame tensor, shape (C, H, W)
+            frame_prev : previous frame tensor, shape (C, H, W)
+            tau        : sensitivity threshold (default 0.05 on normalised frames)
+
+        Returns:
+            mask : float32 tensor of shape (1, H, W), values ∈ {0, 1}
         """
         diff = torch.abs(frame_t - frame_prev)               # (C, H, W)
         mask = (diff.mean(dim=0, keepdim=True) > tau).float()  # (1, H, W)
         return mask
 
-    #    BN statistics warm-up (mirroring ViTTA's _update_bn)                  
+    # ── BN statistics warm-up (mirroring ViTTA's _update_bn) ─────────────────
     def _warmup_bn(self, adapted_model: nn.Module, clip_tensors: list):
         """
         Forward pass in train() mode to re-estimate BN running statistics
         from the test-time distribution before any gradient update.
-        No gradients computed -   purely a statistics alignment step.
+        No gradients computed — purely a statistics alignment step.
         """
         with torch.no_grad():
             for clip in clip_tensors:
                 adapted_model(clip.unsqueeze(0).to(self.device))
 
-    #    Core RMGA: Rhythmic Peak-Anchored Motion-Gated Adaptation             
+    # ── Core RMGA: Rhythmic Peak-Anchored Motion-Gated Adaptation ────────────
     def _rhythmic_adapt(self, adapted_model: nn.Module, clip_tensors: list):
+        """
+        The RMGA adaptation loop.
 
+        For each clip → for each sliding window W:
+          (a) Compute motion masks for all frames.
+          (b) Compute entropy per frame (batched, no_grad) → entropy array.
+          (c) Peak anchoring: t* = argmin H(y_t).
+          (d) Motion-gated backward ONLY on frame t*:
+                loss = H(logits_t*) × motion_weight(t*)
+              where motion_weight = fraction of active pixels in M_t*.
+          (e) Skip window if motion_weight < ε (no movement detected).
+
+        Parameters frozen except last `last_bn_blocks` BN layers (γ, β).
+        FP16 scaler active when use_fp16=True.
+        """
         trainable_params = [p for p in adapted_model.parameters()
                             if p.requires_grad]
         if not trainable_params:
-            print("[RMGA] ⚠  No trainable params -   skipping adaptation.")
+            print("[RMGA] ⚠  No trainable params — skipping adaptation.")
             return
 
         opt    = optim.Adam(trainable_params, lr=self.adapt_lr)
@@ -603,7 +675,7 @@ class RMGA:
                 T, C, H, W = clip.shape
                 clip_dev   = clip.to(self.device)
 
-                #    1. Build motion masks for all T frames                  
+                # ── 1. Build motion masks for all T frames ─────────────────
                 #    Frame 0 gets an all-ones mask (no previous frame)
                 masks = [torch.ones(1, H, W, device=self.device)]   # t=0
                 for t in range(1, T):
@@ -614,7 +686,7 @@ class RMGA:
                 # Stack to (T, 1, H, W)
                 masks = torch.stack(masks, dim=0)
 
-                #    2. Slide windows over the clip                         
+                # ── 2. Slide windows over the clip ────────────────────────
                 W_size   = min(self.window_size, T)
                 n_windows = max(1, (T + W_size - 1) // W_size)  # ceil division
 
@@ -625,8 +697,8 @@ class RMGA:
                     win_m   = masks[start:end]        # (win_len, 1, H, W)
                     win_len = end - start
 
-                    #    3. Batch-compute per-frame entropy (no grad)       
-                    #    Reshape to (win_len, 1, C, H, W) -   each as B=win_len, T=1
+                    # ── 3. Batch-compute per-frame entropy (no grad) ──────
+                    #    Reshape to (win_len, 1, C, H, W) — each as B=win_len, T=1
                     with torch.no_grad():
                         batch_in    = win_f.unsqueeze(1)         # (win_len, 1, C, H, W)
                         batch_logits = adapted_model(batch_in)   # (win_len, num_classes)
@@ -635,10 +707,10 @@ class RMGA:
                             for t in range(win_len)
                         ]
 
-                    #    4. Peak anchoring: t* = argmin entropy             
+                    # ── 4. Peak anchoring: t* = argmin entropy ────────────
                     peak_t = int(np.argmin(frame_entropies))
 
-                    #    5. Motion weight for the peak frame                
+                    # ── 5. Motion weight for the peak frame ───────────────
                     #    Fraction of "active" pixels in M_t* ∈ [0, 1]
                     motion_weight = win_m[peak_t].mean().item()
 
@@ -646,7 +718,7 @@ class RMGA:
                     if motion_weight < 1e-4:
                         continue
 
-                    #    6. Motion-gated backward on peak frame             
+                    # ── 6. Motion-gated backward on peak frame ────────────
                     #    Apply mask to input: zero out static background
                     peak_frame  = win_f[peak_t]              # (C, H, W)
                     peak_mask   = win_m[peak_t]              # (1, H, W)
@@ -661,17 +733,30 @@ class RMGA:
                     with torch.cuda.amp.autocast(enabled=self.use_fp16):
                         logits = adapted_model(peak_input)   # (1, num_classes)
                         # Motion-gated entropy: H × motion_weight
-                        # motion_weight ∈ (0,1] -   less motion --> smaller gradient
+                        # motion_weight ∈ (0,1] — less motion → smaller gradient
                         loss = self._entropy(logits) * motion_weight
 
                     scaler.scale(loss).backward()
                     scaler.step(opt)
                     scaler.update()
 
-    #    Public inference method                                                 
+    # ── Public inference method ────────────────────────────────────────────────
     def predict(self, video_path: str, num_frames: int,
                 transform, label: int = -1):
-        #    1. Primary sequential clip                                      
+        """
+        Runs RMGA inference on one video.
+
+        Pipeline:
+          1. Sample primary clip (sequential frames — critical for motion continuity).
+          2. Sample `extra_clips` diverse clips for BN warm-up (ViTTA-style).
+          3. Build adapted model (selective BN, last N blocks).
+          4. BN statistics warm-up (forward-only).
+          5. Rhythmic Peak-Anchored Motion-Gated Adaptation (backward on peaks).
+          6. Aggregate predictions in eval mode across all clips.
+
+        Returns: (pred_class, confidence, entropy_value)
+        """
+        # ── 1. Primary sequential clip ─────────────────────────────────────
         primary_frames = sample_frames(video_path, num_frames)
         if not primary_frames:
             return 0, 0.0, 0.0
@@ -684,10 +769,10 @@ class RMGA:
                 tensors.append(transform(rgb))   # (C, H, W)
             return torch.stack(tensors, dim=0)   # (T, C, H, W)
 
-        # Primary clip -   used for the core RMGA motion-gated adaptation
+        # Primary clip — used for the core RMGA motion-gated adaptation
         primary_clip = frames_to_tensor(primary_frames)   # (T, C, H, W)
 
-        #    2. Extra diverse clips for BN warm-up                           
+        # ── 2. Extra diverse clips for BN warm-up ──────────────────────────
         all_clip_tensors = [primary_clip]
         if self.extra_clips > 0:
             extra_frames_list = temporal_clips(
@@ -697,20 +782,20 @@ class RMGA:
                 if ef:
                     all_clip_tensors.append(frames_to_tensor(ef))
 
-        #    3. Build per-video adapted model (selective BN)                 
+        # ── 3. Build per-video adapted model (selective BN) ────────────────
         adapted, _ = self._copy_model_to_adapt(
             self.original_model, self.last_bn_blocks
         )
         adapted.to(self.device)
 
-        #    4. BN statistics warm-up (all clips, no grad)                  
+        # ── 4. BN statistics warm-up (all clips, no grad) ─────────────────
         self._warmup_bn(adapted, all_clip_tensors)
 
-        #    5. RMGA core: Rhythmic Motion-Gated backward                   
+        # ── 5. RMGA core: Rhythmic Motion-Gated backward ──────────────────
         #    NOTE: We pass ALL clips so each contributes its peak frame.
         self._rhythmic_adapt(adapted, all_clip_tensors)
 
-        #    6. Aggregate predictions in eval mode                          
+        # ── 6. Aggregate predictions in eval mode ─────────────────────────
         adapted.eval()
         with torch.no_grad():
             all_probs = []
@@ -725,9 +810,9 @@ class RMGA:
         return pred, conf, ent
 
 
-#                                                              
+# ─────────────────────────────────────────────────────────────
 # 8.  TRAINING LOOP
-#                                                              
+# ─────────────────────────────────────────────────────────────
 def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
     model.train()
     total_loss, correct, total = 0.0, 0, 0
@@ -787,23 +872,23 @@ def save_checkpoint(model, optimizer, epoch, path):
         "model"    : model.state_dict(),
         "optimizer": optimizer.state_dict(),
     }, path)
-    print(f"  \|/ Checkpoint saved --> {path}")
+    print(f"  ✔ Checkpoint saved → {path}")
 
 
-#                                                              
+# ─────────────────────────────────────────────────────────────
 # 9.  MAIN
-#                                                              
+# ─────────────────────────────────────────────────────────────
 def main():
     args = build_parser().parse_args()
 
-    #    Reproducibility                                       
+    # ── Reproducibility ──────────────────────────────────────
     random.seed(args.split_seed)
     np.random.seed(args.split_seed)
     torch.manual_seed(args.split_seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"\n{'='*65}")
-    print(f"  Action Recognition -   UCF50  (device: {device})")
+    print(f"  Action Recognition — UCF50  (device: {device})")
     if torch.cuda.is_available():
         print(f"  GPU : {torch.cuda.get_device_name(0)}")
         print(f"  VRAM: {torch.cuda.get_device_properties(0).total_memory/1e9:.2f} GB")
@@ -818,7 +903,7 @@ def main():
 
     os.makedirs(args.ckpt_dir, exist_ok=True)
 
-    #    Step 1: Load & split data                              
+    # ── Step 1: Load & split data ─────────────────────────────
     print("[DATA] Collecting videos …")
     clean_paths, clean_labels, class_names = collect_videos(args.clean_dir)
     mixed_paths, mixed_labels, _           = collect_videos(args.mixed_dir)
@@ -853,7 +938,7 @@ def main():
     for cid, cname in enumerate(class_names):
         print(f"  {cname:<30} train={tr_dist[cid]:>4} | test={te_dist[cid]:>4}")
 
-    #    Step 2: Datasets & Loaders                             
+    # ── Step 2: Datasets & Loaders ────────────────────────────
     train_tf = build_transforms(args.img_size, train=True)
     test_tf  = build_transforms(args.img_size, train=False)
 
@@ -871,7 +956,7 @@ def main():
         pin_memory=torch.cuda.is_available()
     )
 
-    #    Step 3: Build model                                    
+    # ── Step 3: Build model ───────────────────────────────────
     model = build_model(num_classes).to(device)
 
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
@@ -880,7 +965,7 @@ def main():
     )
     scheduler = CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-6)
 
-    #    Step 4: Train (if mode permits)                       
+    # ── Step 4: Train (if mode permits) ──────────────────────
     best_acc = 0.0
     if args.mode == "train_eval":
         print(f"\n{'='*65}")
@@ -897,15 +982,15 @@ def main():
 
             val_loss, val_acc, _, _ = evaluate(model, test_loader, criterion, device)
 
-            print(f"\n  >>>> Epoch {epoch:>3} Summary:")
-            print(f"    Train --> Loss: {tr_loss:.4f} | Acc: {tr_acc:.2f}%")
-            print(f"    Test  --> Loss: {val_loss:.4f} | Acc: {val_acc:.2f}%")
+            print(f"\n  ▶ Epoch {epoch:>3} Summary:")
+            print(f"    Train → Loss: {tr_loss:.4f} | Acc: {tr_acc:.2f}%")
+            print(f"    Test  → Loss: {val_loss:.4f} | Acc: {val_acc:.2f}%")
             print(f"    LR    = {scheduler.get_last_lr()[0]:.6f}")
 
             if val_acc > best_acc:
                 best_acc = val_acc
                 torch.save(model.state_dict(), args.best_model)
-                print(f"    * New best model saved --> {args.best_model} "
+                print(f"    ★ New best model saved → {args.best_model} "
                       f"(Acc={best_acc:.2f}%)")
 
             if epoch % args.save_every == 0:
@@ -925,7 +1010,7 @@ def main():
         )
         print(f"[EVAL] Loaded weights from {args.load_weights}")
 
-    #    Step 5: Final Evaluation                               
+    # ── Step 5: Final Evaluation ──────────────────────────────
     # Guard: both flags cannot be active simultaneously
     if args.ViTTA and args.RMGA:
         print("\n[WARN] Both --ViTTA and --RMGA are set. "
@@ -938,7 +1023,7 @@ def main():
     print(f"  EVALUATION  (method: {method_tag})")
     print(f"{'='*65}\n")
 
-    #    5a. Standard evaluation                                
+    # ── 5a. Standard evaluation ───────────────────────────────
     if not args.ViTTA and not args.RMGA:
         model.eval()
         test_loss, test_acc, class_correct, class_total = evaluate(
@@ -954,7 +1039,7 @@ def main():
             print(f"  {cname:<30} {cc:>3}/{ct:>3} = {pct:5.1f}%")
         print(f"\n[RESULT] Overall Accuracy: {test_acc:.2f}%")
 
-    #    5b. ViTTA evaluation                                   
+    # ── 5b. ViTTA evaluation ──────────────────────────────────
     elif args.ViTTA:
         print(f"[ViTTA] Running per-video adapted inference …")
         print(f"[ViTTA] n_clips={args.vitta_clips} | "
@@ -1002,7 +1087,7 @@ def main():
             print(f"  {cname:<30} {cc:>3}/{ct:>3} = {pct:5.1f}%")
         print(f"\n[RESULT] Overall ViTTA Accuracy: {test_acc:.2f}%")
 
-    #    5c. RMGA evaluation       
+    # ── 5c. RMGA evaluation (NEW) ─────────────────────────────
     elif args.RMGA:
         print(f"[RMGA] Running per-video Rhythmic Motion-Gated adaptation …")
         print(f"[RMGA] window={args.rmga_window} | steps={args.rmga_steps} | "

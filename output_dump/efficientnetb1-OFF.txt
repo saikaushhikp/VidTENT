@@ -1,8 +1,8 @@
 
 ============================================================
-  Action Recognition - UCF50  (device: cuda)
-  GPU: NVIDIA RTX  3050
-  VRAM:  4.00 GB
+  Action Recognition — UCF50  (device: cuda)
+  GPU: NVIDIA RTX A6000
+  VRAM: 51.04 GB
   ViTTA: DISABLED
 ============================================================
 
@@ -105,11 +105,11 @@
   [Epoch 1] Step 290/292 | Loss: 1.9225 | Acc: 63.45% | Time: 28.5s
   [Epoch 1] Step 292/292 | Loss: 1.9184 | Acc: 63.57% | Time: 28.7s
 
-   Epoch   1 Summary:
-    Train --> Loss: 1.9184 | Acc: 63.57%
-    Test  --> Loss: 2.5304 | Acc: 45.34%
+  ▶ Epoch   1 Summary:
+    Train → Loss: 1.9184 | Acc: 63.57%
+    Test  → Loss: 2.5304 | Acc: 45.34%
     LR    = 0.000750
-    * New best model saved --> best_model.pth (Acc=45.34%)
+    ★ New best model saved → best_model.pth (Acc=45.34%)
 
 [EPOCH 2/3]
   [Epoch 2] Step 10/292 | Loss: 1.0549 | Acc: 95.00% | Time: 1.3s
@@ -143,11 +143,11 @@
   [Epoch 2] Step 290/292 | Loss: 1.0041 | Acc: 93.88% | Time: 28.1s
   [Epoch 2] Step 292/292 | Loss: 1.0034 | Acc: 93.88% | Time: 28.2s
 
-   Epoch   2 Summary:
-    Train --> Loss: 1.0034 | Acc: 93.88%
-    Test  --> Loss: 2.5471 | Acc: 48.68%
+  ▶ Epoch   2 Summary:
+    Train → Loss: 1.0034 | Acc: 93.88%
+    Test  → Loss: 2.5471 | Acc: 48.68%
     LR    = 0.000251
-    * New best model saved --> best_model.pth (Acc=48.68%)
+    ★ New best model saved → best_model.pth (Acc=48.68%)
 
 [EPOCH 3/3]
   [Epoch 3] Step 10/292 | Loss: 0.8593 | Acc: 98.75% | Time: 1.4s
@@ -181,11 +181,11 @@
   [Epoch 3] Step 290/292 | Loss: 0.8464 | Acc: 98.77% | Time: 28.3s
   [Epoch 3] Step 292/292 | Loss: 0.8464 | Acc: 98.78% | Time: 28.5s
 
-  >>>> Epoch   3 Summary:
-    Train --> Loss: 0.8464 | Acc: 98.78%
-    Test  --> Loss: 2.2438 | Acc: 55.46%
+  ▶ Epoch   3 Summary:
+    Train → Loss: 0.8464 | Acc: 98.78%
+    Test  → Loss: 2.2438 | Acc: 55.46%
     LR    = 0.000001
-    * New best model saved --> best_model.pth (Acc=55.46%)
+    ★ New best model saved → best_model.pth (Acc=55.46%)
 
 [TRAIN DONE] Best Test Accuracy: 55.46%
 

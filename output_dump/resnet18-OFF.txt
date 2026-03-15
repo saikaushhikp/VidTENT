@@ -1,8 +1,8 @@
 
 ============================================================
-  Action Recognition - UCF50  (device: cuda)
+  Action Recognition — UCF50  (device: cuda)
   GPU: NVIDIA RTX A6000
-  VRAM:  4.00 GB
+  VRAM: 51.04 GB
   ViTTA: DISABLED
 ============================================================
 
@@ -105,11 +105,11 @@
   [Epoch 1] Step 290/292 | Loss: 2.5032 | Acc: 49.05% | Time: 17.8s
   [Epoch 1] Step 292/292 | Loss: 2.4970 | Acc: 49.27% | Time: 17.9s
 
-  >>>> Epoch   1 Summary:
-    Train --> Loss: 2.4970 | Acc: 49.27%
-    Test  --> Loss: 3.6992 | Acc: 24.69%
+  ▶ Epoch   1 Summary:
+    Train → Loss: 2.4970 | Acc: 49.27%
+    Test  → Loss: 3.6992 | Acc: 24.69%
     LR    = 0.000051
-    * New best model saved --> best_model.pth (Acc=24.69%)
+    ★ New best model saved → best_model.pth (Acc=24.69%)
 
 [EPOCH 2/2]
   [Epoch 2] Step 10/292 | Loss: 1.2729 | Acc: 86.88% | Time: 0.8s
@@ -143,11 +143,11 @@
   [Epoch 2] Step 290/292 | Loss: 1.2027 | Acc: 90.26% | Time: 16.9s
   [Epoch 2] Step 292/292 | Loss: 1.2023 | Acc: 90.30% | Time: 16.9s
 
-  >>>> Epoch   2 Summary:
-    Train --> Loss: 1.2023 | Acc: 90.30%
-    Test  --> Loss: 3.6684 | Acc: 27.33%
+  ▶ Epoch   2 Summary:
+    Train → Loss: 1.2023 | Acc: 90.30%
+    Test  → Loss: 3.6684 | Acc: 27.33%
     LR    = 0.000001
-    * New best model saved --> best_model.pth (Acc=27.33%)
+    ★ New best model saved → best_model.pth (Acc=27.33%)
 
 [TRAIN DONE] Best Test Accuracy: 33.33%
 
