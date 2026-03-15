@@ -210,3 +210,4 @@ __marimo__/
 datasets/*
 !datasets/.gitkeep
 !datasets/UCF50_mixed_labels.csv
+!dataset/ucf50_video_metadata.csv
