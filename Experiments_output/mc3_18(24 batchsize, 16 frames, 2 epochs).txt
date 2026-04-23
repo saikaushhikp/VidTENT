@@ -1,0 +1,466 @@
+============================================================
+  Action Recognition — UCF50  (device: cuda)
+  Model : mc3_18  (3D video model)
+============================================================
+
+[DATA] Collecting videos …
+[DATA] Classes: 50
+[DATA] Clean videos: 6681
+[DATA] Mixed videos: 6681
+[DATA] Stratified 70-30 split (seed=42) …
+[DATA] Train samples: 4676
+[DATA] Test  samples: 2005
+
+[DATA] Per-class sample counts (train | test):
+  BaseballPitch                  train= 105 | test=  45
+  Basketball                     train=  96 | test=  41
+  BenchPress                     train= 112 | test=  48
+  Biking                         train= 101 | test=  44
+  Billiards                      train= 105 | test=  45
+  BreastStroke                   train=  71 | test=  30
+  CleanAndJerk                   train=  78 | test=  34
+  Diving                         train= 107 | test=  46
+  Drumming                       train= 113 | test=  48
+  Fencing                        train=  78 | test=  33
+  GolfSwing                      train=  99 | test=  43
+  HighJump                       train=  86 | test=  37
+  HorseRace                      train=  89 | test=  38
+  HorseRiding                    train= 138 | test=  59
+  HulaHoop                       train=  87 | test=  38
+  JavelinThrow                   train=  82 | test=  35
+  JugglingBalls                  train=  85 | test=  37
+  JumpRope                       train= 103 | test=  45
+  JumpingJack                    train=  86 | test=  37
+  Kayaking                       train= 110 | test=  47
+  Lunges                         train=  99 | test=  42
+  MilitaryParade                 train=  89 | test=  38
+  Mixing                         train=  99 | test=  42
+  Nunchucks                      train= 105 | test=  45
+  PizzaTossing                   train=  80 | test=  34
+  PlayingGuitar                  train= 112 | test=  48
+  PlayingPiano                   train=  73 | test=  32
+  PlayingTabla                   train=  87 | test=  37
+  PlayingViolin                  train=  70 | test=  30
+  PoleVault                      train= 112 | test=  48
+  PommelHorse                    train=  86 | test=  37
+  PullUps                        train=  84 | test=  36
+  Punch                          train= 112 | test=  48
+  PushUps                        train=  74 | test=  32
+  RockClimbingIndoor             train= 104 | test=  44
+  RopeClimbing                   train=  91 | test=  39
+  Rowing                         train=  96 | test=  41
+  SalsaSpin                      train=  93 | test=  40
+  SkateBoarding                  train=  84 | test=  36
+  Skiing                         train= 101 | test=  43
+  Skijet                         train=  70 | test=  30
+  SoccerJuggling                 train= 109 | test=  47
+  Swing                          train=  96 | test=  41
+  TaiChi                         train=  70 | test=  30
+  TennisSwing                    train= 117 | test=  50
+  ThrowDiscus                    train=  92 | test=  39
+  TrampolineJumping              train=  83 | test=  36
+  VolleyballSpiking              train=  81 | test=  35
+  WalkingWithDog                 train=  86 | test=  37
+  YoYo                           train=  90 | test=  38
+
+[MODEL] Loading backbone: mc3_18 (pretrained=True)
+[MODEL] Video model: mc3_18  |  fc in_features: 512
+[MODEL] Total params: 11,515,890  |  Trainable: 11,515,890
+
+============================================================
+  TRAINING  (2 epochs)
+============================================================
+
+[EPOCH 1/2]
+  [Epoch 1] Step 10/194 | Loss: 3.8329 | Acc: 10.83% | Time: 15.3s
+  [Epoch 1] Step 20/194 | Loss: 3.6696 | Acc: 17.92% | Time: 26.2s
+  [Epoch 1] Step 30/194 | Loss: 3.4833 | Acc: 26.25% | Time: 38.0s
+  [Epoch 1] Step 40/194 | Loss: 3.3060 | Acc: 33.23% | Time: 49.4s
+  [Epoch 1] Step 50/194 | Loss: 3.1408 | Acc: 39.08% | Time: 60.8s
+  [Epoch 1] Step 60/194 | Loss: 3.0011 | Acc: 43.68% | Time: 72.1s
+  [Epoch 1] Step 70/194 | Loss: 2.8768 | Acc: 47.50% | Time: 83.8s
+  [Epoch 1] Step 80/194 | Loss: 2.7590 | Acc: 51.20% | Time: 95.2s
+  [Epoch 1] Step 90/194 | Loss: 2.6496 | Acc: 55.00% | Time: 107.4s
+  [Epoch 1] Step 100/194 | Loss: 2.5568 | Acc: 57.33% | Time: 118.5s
+  [Epoch 1] Step 110/194 | Loss: 2.4729 | Acc: 59.55% | Time: 130.4s
+  [Epoch 1] Step 120/194 | Loss: 2.3924 | Acc: 61.56% | Time: 141.7s
+  [Epoch 1] Step 130/194 | Loss: 2.3183 | Acc: 63.43% | Time: 153.6s
+  [Epoch 1] Step 140/194 | Loss: 2.2579 | Acc: 64.85% | Time: 164.9s
+  [Epoch 1] Step 150/194 | Loss: 2.2003 | Acc: 66.47% | Time: 176.8s
+  [Epoch 1] Step 160/194 | Loss: 2.1473 | Acc: 67.99% | Time: 188.2s
+  [Epoch 1] Step 170/194 | Loss: 2.0925 | Acc: 69.41% | Time: 199.9s
+  [Epoch 1] Step 180/194 | Loss: 2.0461 | Acc: 70.60% | Time: 211.4s
+  [Epoch 1] Step 190/194 | Loss: 2.0022 | Acc: 71.78% | Time: 223.1s
+  [Epoch 1] Step 194/194 | Loss: 1.9858 | Acc: 72.14% | Time: 227.2s
+
+  ▶ Epoch   1 Summary:
+    Train → Loss: 1.9858 | Acc: 72.14%
+    Test  → Loss: 2.1079 | Acc: 64.69%
+    LR    = 0.000051
+    ★ New best model saved → mc3_18_best_model.pth (Acc=64.69%)
+
+[EPOCH 2/2]
+  [Epoch 2] Step 10/194 | Loss: 1.0503 | Acc: 95.42% | Time: 15.1s
+  [Epoch 2] Step 20/194 | Loss: 1.0479 | Acc: 95.42% | Time: 25.9s
+  [Epoch 2] Step 30/194 | Loss: 1.0653 | Acc: 95.14% | Time: 37.4s
+  [Epoch 2] Step 40/194 | Loss: 1.0585 | Acc: 95.42% | Time: 48.5s
+  [Epoch 2] Step 50/194 | Loss: 1.0506 | Acc: 95.50% | Time: 59.9s
+  [Epoch 2] Step 60/194 | Loss: 1.0470 | Acc: 95.76% | Time: 71.0s
+  [Epoch 2] Step 70/194 | Loss: 1.0395 | Acc: 96.25% | Time: 81.8s
+  [Epoch 2] Step 80/194 | Loss: 1.0370 | Acc: 96.15% | Time: 92.9s
+  [Epoch 2] Step 90/194 | Loss: 1.0317 | Acc: 96.16% | Time: 104.1s
+  [Epoch 2] Step 100/194 | Loss: 1.0261 | Acc: 96.29% | Time: 115.5s
+  [Epoch 2] Step 110/194 | Loss: 1.0196 | Acc: 96.44% | Time: 126.9s
+  [Epoch 2] Step 120/194 | Loss: 1.0136 | Acc: 96.56% | Time: 137.9s
+  [Epoch 2] Step 130/194 | Loss: 1.0092 | Acc: 96.67% | Time: 149.7s
+  [Epoch 2] Step 140/194 | Loss: 1.0039 | Acc: 96.79% | Time: 160.4s
+  [Epoch 2] Step 150/194 | Loss: 1.0002 | Acc: 96.92% | Time: 171.8s
+  [Epoch 2] Step 160/194 | Loss: 0.9968 | Acc: 96.93% | Time: 182.8s
+  [Epoch 2] Step 170/194 | Loss: 0.9920 | Acc: 96.91% | Time: 194.8s
+  [Epoch 2] Step 180/194 | Loss: 0.9904 | Acc: 96.90% | Time: 206.3s
+  [Epoch 2] Step 190/194 | Loss: 0.9872 | Acc: 96.97% | Time: 217.3s
+  [Epoch 2] Step 194/194 | Loss: 0.9857 | Acc: 96.97% | Time: 221.4s
+
+  ▶ Epoch   2 Summary:
+    Train → Loss: 0.9857 | Acc: 96.97%
+    Test  → Loss: 2.0402 | Acc: 61.35%
+    LR    = 0.000001
+
+[TRAIN DONE] Best Test Accuracy: 64.69%
+
+============================================================
+  EVALUATION  (ViTTA=ON)
+============================================================
+
+[ViTTA] Running per-video adapted inference …
+[ViTTA] n_clips=4 | adapt_steps=1 | adapt_lr=0.0001
+  [ViTTA] 20/2005 | Running Acc: 80.00% | AvgEnt: 3.5615
+  [ViTTA] 40/2005 | Running Acc: 75.00% | AvgEnt: 3.5802
+  [ViTTA] 60/2005 | Running Acc: 78.33% | AvgEnt: 3.5814
+  [ViTTA] 80/2005 | Running Acc: 77.50% | AvgEnt: 3.5647
+  [ViTTA] 100/2005 | Running Acc: 72.00% | AvgEnt: 3.5748
+  [ViTTA] 120/2005 | Running Acc: 74.17% | AvgEnt: 3.5663
+  [ViTTA] 140/2005 | Running Acc: 75.00% | AvgEnt: 3.5572
+  [ViTTA] 160/2005 | Running Acc: 75.00% | AvgEnt: 3.5617
+  [ViTTA] 180/2005 | Running Acc: 75.00% | AvgEnt: 3.5553
+  [ViTTA] 200/2005 | Running Acc: 75.50% | AvgEnt: 3.5613
+  [ViTTA] 220/2005 | Running Acc: 74.09% | AvgEnt: 3.5676
+  [ViTTA] 240/2005 | Running Acc: 73.75% | AvgEnt: 3.5700
+  [ViTTA] 260/2005 | Running Acc: 73.08% | AvgEnt: 3.5729
+  [ViTTA] 280/2005 | Running Acc: 72.86% | AvgEnt: 3.5755
+  [ViTTA] 300/2005 | Running Acc: 73.00% | AvgEnt: 3.5773
+  [ViTTA] 320/2005 | Running Acc: 72.50% | AvgEnt: 3.5751
+  [ViTTA] 340/2005 | Running Acc: 73.53% | AvgEnt: 3.5756
+  [ViTTA] 360/2005 | Running Acc: 73.61% | AvgEnt: 3.5707
+  [ViTTA] 380/2005 | Running Acc: 73.42% | AvgEnt: 3.5667
+  [ViTTA] 400/2005 | Running Acc: 73.50% | AvgEnt: 3.5695
+  [ViTTA] 420/2005 | Running Acc: 73.81% | AvgEnt: 3.5702
+  [ViTTA] 440/2005 | Running Acc: 73.86% | AvgEnt: 3.5728
+  [ViTTA] 460/2005 | Running Acc: 74.13% | AvgEnt: 3.5704
+  [ViTTA] 480/2005 | Running Acc: 74.79% | AvgEnt: 3.5712
+  [ViTTA] 500/2005 | Running Acc: 74.80% | AvgEnt: 3.5731
+  [ViTTA] 520/2005 | Running Acc: 75.00% | AvgEnt: 3.5734
+  [ViTTA] 540/2005 | Running Acc: 75.56% | AvgEnt: 3.5738
+  [ViTTA] 560/2005 | Running Acc: 76.07% | AvgEnt: 3.5716
+  [ViTTA] 580/2005 | Running Acc: 76.38% | AvgEnt: 3.5710
+  [ViTTA] 600/2005 | Running Acc: 77.17% | AvgEnt: 3.5735
+  [ViTTA] 620/2005 | Running Acc: 77.58% | AvgEnt: 3.5697
+  [ViTTA] 640/2005 | Running Acc: 77.34% | AvgEnt: 3.5714
+  [ViTTA] 660/2005 | Running Acc: 77.88% | AvgEnt: 3.5717
+  [ViTTA] 680/2005 | Running Acc: 77.50% | AvgEnt: 3.5725
+  [ViTTA] 700/2005 | Running Acc: 77.29% | AvgEnt: 3.5717
+  [ViTTA] 720/2005 | Running Acc: 77.50% | AvgEnt: 3.5734
+  [ViTTA] 740/2005 | Running Acc: 77.03% | AvgEnt: 3.5736
+  [ViTTA] 760/2005 | Running Acc: 76.84% | AvgEnt: 3.5748
+  [ViTTA] 780/2005 | Running Acc: 77.05% | AvgEnt: 3.5711
+  [ViTTA] 800/2005 | Running Acc: 76.75% | AvgEnt: 3.5732
+  [ViTTA] 820/2005 | Running Acc: 76.71% | AvgEnt: 3.5761
+  [ViTTA] 840/2005 | Running Acc: 76.79% | AvgEnt: 3.5778
+  [ViTTA] 860/2005 | Running Acc: 76.86% | AvgEnt: 3.5766
+  [ViTTA] 880/2005 | Running Acc: 76.82% | AvgEnt: 3.5767
+  [ViTTA] 900/2005 | Running Acc: 77.00% | AvgEnt: 3.5768
+  [ViTTA] 920/2005 | Running Acc: 76.96% | AvgEnt: 3.5746
+  [ViTTA] 940/2005 | Running Acc: 76.38% | AvgEnt: 3.5749
+  [ViTTA] 960/2005 | Running Acc: 76.56% | AvgEnt: 3.5749
+  [ViTTA] 980/2005 | Running Acc: 76.63% | AvgEnt: 3.5759
+  [ViTTA] 1000/2005 | Running Acc: 76.70% | AvgEnt: 3.5750
+  [ViTTA] 1020/2005 | Running Acc: 76.67% | AvgEnt: 3.5761
+  [ViTTA] 1040/2005 | Running Acc: 76.54% | AvgEnt: 3.5751
+  [ViTTA] 1060/2005 | Running Acc: 76.60% | AvgEnt: 3.5752
+  [ViTTA] 1080/2005 | Running Acc: 76.39% | AvgEnt: 3.5752
+  [ViTTA] 1100/2005 | Running Acc: 76.36% | AvgEnt: 3.5749
+  [ViTTA] 1120/2005 | Running Acc: 76.43% | AvgEnt: 3.5760
+  [ViTTA] 1140/2005 | Running Acc: 76.49% | AvgEnt: 3.5747
+  [ViTTA] 1160/2005 | Running Acc: 76.72% | AvgEnt: 3.5761
+  [ViTTA] 1180/2005 | Running Acc: 76.53% | AvgEnt: 3.5763
+  [ViTTA] 1200/2005 | Running Acc: 76.75% | AvgEnt: 3.5768
+  [ViTTA] 1220/2005 | Running Acc: 76.72% | AvgEnt: 3.5764
+  [ViTTA] 1240/2005 | Running Acc: 76.61% | AvgEnt: 3.5763
+  [ViTTA] 1260/2005 | Running Acc: 76.75% | AvgEnt: 3.5774
+  [ViTTA] 1280/2005 | Running Acc: 76.64% | AvgEnt: 3.5781
+  [ViTTA] 1300/2005 | Running Acc: 76.77% | AvgEnt: 3.5782
+  [ViTTA] 1320/2005 | Running Acc: 76.52% | AvgEnt: 3.5786
+  [ViTTA] 1340/2005 | Running Acc: 76.57% | AvgEnt: 3.5790
+  [ViTTA] 1360/2005 | Running Acc: 76.47% | AvgEnt: 3.5787
+  [ViTTA] 1380/2005 | Running Acc: 76.52% | AvgEnt: 3.5788
+  [ViTTA] 1400/2005 | Running Acc: 76.50% | AvgEnt: 3.5791
+  [ViTTA] 1420/2005 | Running Acc: 76.55% | AvgEnt: 3.5788
+  [ViTTA] 1440/2005 | Running Acc: 76.53% | AvgEnt: 3.5789
+  [ViTTA] 1460/2005 | Running Acc: 76.58% | AvgEnt: 3.5787
+  [ViTTA] 1480/2005 | Running Acc: 76.55% | AvgEnt: 3.5784
+  [ViTTA] 1500/2005 | Running Acc: 76.47% | AvgEnt: 3.5780
+  [ViTTA] 1520/2005 | Running Acc: 76.38% | AvgEnt: 3.5788
+  [ViTTA] 1540/2005 | Running Acc: 76.43% | AvgEnt: 3.5791
+  [ViTTA] 1560/2005 | Running Acc: 76.35% | AvgEnt: 3.5783
+  [ViTTA] 1580/2005 | Running Acc: 76.33% | AvgEnt: 3.5785
+  [ViTTA] 1600/2005 | Running Acc: 76.38% | AvgEnt: 3.5771
+  [ViTTA] 1620/2005 | Running Acc: 76.17% | AvgEnt: 3.5763
+  [ViTTA] 1640/2005 | Running Acc: 76.04% | AvgEnt: 3.5760
+  [ViTTA] 1660/2005 | Running Acc: 75.96% | AvgEnt: 3.5755
+  [ViTTA] 1680/2005 | Running Acc: 75.95% | AvgEnt: 3.5761
+  [ViTTA] 1700/2005 | Running Acc: 75.82% | AvgEnt: 3.5760
+  [ViTTA] 1720/2005 | Running Acc: 75.99% | AvgEnt: 3.5758
+  [ViTTA] 1740/2005 | Running Acc: 76.09% | AvgEnt: 3.5752
+  [ViTTA] 1760/2005 | Running Acc: 76.02% | AvgEnt: 3.5755
+  [ViTTA] 1780/2005 | Running Acc: 76.01% | AvgEnt: 3.5753
+  [ViTTA] 1800/2005 | Running Acc: 75.94% | AvgEnt: 3.5744
+  [ViTTA] 1820/2005 | Running Acc: 75.93% | AvgEnt: 3.5752
+  [ViTTA] 1840/2005 | Running Acc: 76.03% | AvgEnt: 3.5752
+  [ViTTA] 1860/2005 | Running Acc: 76.08% | AvgEnt: 3.5754
+  [ViTTA] 1880/2005 | Running Acc: 76.17% | AvgEnt: 3.5743
+  [ViTTA] 1900/2005 | Running Acc: 76.11% | AvgEnt: 3.5748
+  [ViTTA] 1920/2005 | Running Acc: 76.20% | AvgEnt: 3.5751
+  [ViTTA] 1940/2005 | Running Acc: 76.29% | AvgEnt: 3.5749
+  [ViTTA] 1960/2005 | Running Acc: 76.38% | AvgEnt: 3.5744
+  [ViTTA] 1980/2005 | Running Acc: 76.41% | AvgEnt: 3.5749
+  [ViTTA] 2000/2005 | Running Acc: 76.40% | AvgEnt: 3.5747
+  [ViTTA] 2005/2005 | Running Acc: 76.36% | AvgEnt: 3.5746
+
+[RESULT] ViTTA Test Accuracy : 76.36%
+[RESULT] Mean Prediction Entropy : 3.5746
+
+[RESULT] Per-class Accuracy (ViTTA):
+  BaseballPitch                   37/ 45 =  82.2%
+  Basketball                      37/ 41 =  90.2%
+  BenchPress                      43/ 48 =  89.6%
+  Biking                          40/ 44 =  90.9%
+  Billiards                       45/ 45 = 100.0%
+  BreastStroke                    25/ 30 =  83.3%
+  CleanAndJerk                    16/ 34 =  47.1%
+  Diving                          41/ 46 =  89.1%
+  Drumming                        39/ 48 =  81.2%
+  Fencing                         26/ 33 =  78.8%
+  GolfSwing                       31/ 43 =  72.1%
+  HighJump                        13/ 37 =  35.1%
+  HorseRace                       32/ 38 =  84.2%
+  HorseRiding                     54/ 59 =  91.5%
+  HulaHoop                        19/ 38 =  50.0%
+  JavelinThrow                    14/ 35 =  40.0%
+  JugglingBalls                   30/ 37 =  81.1%
+  JumpRope                        28/ 45 =  62.2%
+  JumpingJack                     34/ 37 =  91.9%
+  Kayaking                        41/ 47 =  87.2%
+  Lunges                          23/ 42 =  54.8%
+  MilitaryParade                  36/ 38 =  94.7%
+  Mixing                          32/ 42 =  76.2%
+  Nunchucks                       27/ 45 =  60.0%
+  PizzaTossing                    18/ 34 =  52.9%
+  PlayingGuitar                   37/ 48 =  77.1%
+  PlayingPiano                    11/ 32 =  34.4%
+  PlayingTabla                    32/ 37 =  86.5%
+  PlayingViolin                   20/ 30 =  66.7%
+  PoleVault                       41/ 48 =  85.4%
+  PommelHorse                     27/ 37 =  73.0%
+  PullUps                         25/ 36 =  69.4%
+  Punch                           42/ 48 =  87.5%
+  PushUps                         24/ 32 =  75.0%
+  RockClimbingIndoor              29/ 44 =  65.9%
+  RopeClimbing                    33/ 39 =  84.6%
+  Rowing                          32/ 41 =  78.0%
+  SalsaSpin                       29/ 40 =  72.5%
+  SkateBoarding                   25/ 36 =  69.4%
+  Skiing                          41/ 43 =  95.3%
+  Skijet                          22/ 30 =  73.3%
+  SoccerJuggling                  34/ 47 =  72.3%
+  Swing                           39/ 41 =  95.1%
+  TaiChi                          15/ 30 =  50.0%
+  TennisSwing                     40/ 50 =  80.0%
+  ThrowDiscus                     35/ 39 =  89.7%
+  TrampolineJumping               31/ 36 =  86.1%
+  VolleyballSpiking               29/ 35 =  82.9%
+  WalkingWithDog                  28/ 37 =  75.7%
+  YoYo                            29/ 38 =  76.3%
+
+[RESULT] Overall ViTTA Accuracy: 76.36%
+
+=================================================================
+  EVALUATION  (method: RMGA  |  pipeline: 3D)
+=================================================================
+
+[RMGA] Running per-video Rhythmic Motion-Gated adaptation …
+[RMGA] window=8 | steps=1 | lr=0.0001 | tau=0.05
+[RMGA] last_bn_blocks=3 | fp16=False | extra_clips=2
+  [RMGA] 20/2005 | Running Acc: 75.00% | AvgEnt: 3.2200 | AvgConf: 0.2594
+  [RMGA] 40/2005 | Running Acc: 67.50% | AvgEnt: 3.2863 | AvgConf: 0.2295
+  [RMGA] 60/2005 | Running Acc: 70.00% | AvgEnt: 3.2718 | AvgConf: 0.2334
+  [RMGA] 80/2005 | Running Acc: 66.25% | AvgEnt: 3.2686 | AvgConf: 0.2326
+  [RMGA] 100/2005 | Running Acc: 63.00% | AvgEnt: 3.2798 | AvgConf: 0.2297
+  [RMGA] 120/2005 | Running Acc: 66.67% | AvgEnt: 3.2311 | AvgConf: 0.2460
+  [RMGA] 140/2005 | Running Acc: 67.86% | AvgEnt: 3.2162 | AvgConf: 0.2505
+  [RMGA] 160/2005 | Running Acc: 69.38% | AvgEnt: 3.2265 | AvgConf: 0.2484
+  [RMGA] 180/2005 | Running Acc: 70.00% | AvgEnt: 3.2266 | AvgConf: 0.2487
+  [RMGA] 200/2005 | Running Acc: 69.50% | AvgEnt: 3.2348 | AvgConf: 0.2469
+  [RMGA] 220/2005 | Running Acc: 67.73% | AvgEnt: 3.2547 | AvgConf: 0.2397
+  [RMGA] 240/2005 | Running Acc: 67.50% | AvgEnt: 3.2492 | AvgConf: 0.2419
+  [RMGA] 260/2005 | Running Acc: 67.69% | AvgEnt: 3.2551 | AvgConf: 0.2402
+  [RMGA] 280/2005 | Running Acc: 67.86% | AvgEnt: 3.2574 | AvgConf: 0.2403
+  [RMGA] 300/2005 | Running Acc: 69.33% | AvgEnt: 3.2599 | AvgConf: 0.2395
+  [RMGA] 320/2005 | Running Acc: 68.75% | AvgEnt: 3.2472 | AvgConf: 0.2437
+  [RMGA] 340/2005 | Running Acc: 69.71% | AvgEnt: 3.2541 | AvgConf: 0.2422
+  [RMGA] 360/2005 | Running Acc: 70.00% | AvgEnt: 3.2456 | AvgConf: 0.2447
+  [RMGA] 380/2005 | Running Acc: 70.00% | AvgEnt: 3.2345 | AvgConf: 0.2482
+  [RMGA] 400/2005 | Running Acc: 70.00% | AvgEnt: 3.2389 | AvgConf: 0.2464
+  [RMGA] 420/2005 | Running Acc: 70.48% | AvgEnt: 3.2401 | AvgConf: 0.2458
+  [RMGA] 440/2005 | Running Acc: 70.45% | AvgEnt: 3.2443 | AvgConf: 0.2445
+  [RMGA] 460/2005 | Running Acc: 70.87% | AvgEnt: 3.2415 | AvgConf: 0.2455
+  [RMGA] 480/2005 | Running Acc: 71.67% | AvgEnt: 3.2388 | AvgConf: 0.2464
+  [RMGA] 500/2005 | Running Acc: 72.20% | AvgEnt: 3.2431 | AvgConf: 0.2452
+  [RMGA] 520/2005 | Running Acc: 72.12% | AvgEnt: 3.2463 | AvgConf: 0.2442
+  [RMGA] 540/2005 | Running Acc: 72.22% | AvgEnt: 3.2471 | AvgConf: 0.2439
+  [RMGA] 560/2005 | Running Acc: 72.68% | AvgEnt: 3.2412 | AvgConf: 0.2458
+  [RMGA] 580/2005 | Running Acc: 72.93% | AvgEnt: 3.2415 | AvgConf: 0.2458
+  [RMGA] 600/2005 | Running Acc: 73.33% | AvgEnt: 3.2490 | AvgConf: 0.2433
+  [RMGA] 620/2005 | Running Acc: 73.55% | AvgEnt: 3.2441 | AvgConf: 0.2447
+  [RMGA] 640/2005 | Running Acc: 73.75% | AvgEnt: 3.2480 | AvgConf: 0.2432
+  [RMGA] 660/2005 | Running Acc: 73.94% | AvgEnt: 3.2502 | AvgConf: 0.2421
+  [RMGA] 680/2005 | Running Acc: 73.97% | AvgEnt: 3.2531 | AvgConf: 0.2407
+  [RMGA] 700/2005 | Running Acc: 74.00% | AvgEnt: 3.2550 | AvgConf: 0.2403
+  [RMGA] 720/2005 | Running Acc: 74.17% | AvgEnt: 3.2581 | AvgConf: 0.2394
+  [RMGA] 740/2005 | Running Acc: 73.78% | AvgEnt: 3.2565 | AvgConf: 0.2401
+  [RMGA] 760/2005 | Running Acc: 73.68% | AvgEnt: 3.2593 | AvgConf: 0.2391
+  [RMGA] 780/2005 | Running Acc: 73.72% | AvgEnt: 3.2534 | AvgConf: 0.2403
+  [RMGA] 800/2005 | Running Acc: 73.25% | AvgEnt: 3.2577 | AvgConf: 0.2389
+  [RMGA] 820/2005 | Running Acc: 73.17% | AvgEnt: 3.2636 | AvgConf: 0.2371
+  [RMGA] 840/2005 | Running Acc: 73.33% | AvgEnt: 3.2659 | AvgConf: 0.2366
+  [RMGA] 860/2005 | Running Acc: 73.37% | AvgEnt: 3.2635 | AvgConf: 0.2374
+  [RMGA] 880/2005 | Running Acc: 73.18% | AvgEnt: 3.2652 | AvgConf: 0.2368
+  [RMGA] 900/2005 | Running Acc: 73.33% | AvgEnt: 3.2631 | AvgConf: 0.2376
+  [RMGA] 920/2005 | Running Acc: 73.15% | AvgEnt: 3.2606 | AvgConf: 0.2383
+  [RMGA] 940/2005 | Running Acc: 72.66% | AvgEnt: 3.2604 | AvgConf: 0.2384
+  [RMGA] 960/2005 | Running Acc: 72.92% | AvgEnt: 3.2621 | AvgConf: 0.2380
+  [RMGA] 980/2005 | Running Acc: 73.06% | AvgEnt: 3.2635 | AvgConf: 0.2378
+  [RMGA] 1000/2005 | Running Acc: 72.90% | AvgEnt: 3.2619 | AvgConf: 0.2382
+  [RMGA] 1020/2005 | Running Acc: 72.84% | AvgEnt: 3.2630 | AvgConf: 0.2381
+  [RMGA] 1040/2005 | Running Acc: 72.88% | AvgEnt: 3.2613 | AvgConf: 0.2385
+  [RMGA] 1060/2005 | Running Acc: 73.02% | AvgEnt: 3.2607 | AvgConf: 0.2389
+  [RMGA] 1080/2005 | Running Acc: 72.96% | AvgEnt: 3.2608 | AvgConf: 0.2389
+  [RMGA] 1100/2005 | Running Acc: 73.00% | AvgEnt: 3.2612 | AvgConf: 0.2388
+  [RMGA] 1120/2005 | Running Acc: 73.04% | AvgEnt: 3.2635 | AvgConf: 0.2381
+  [RMGA] 1140/2005 | Running Acc: 73.07% | AvgEnt: 3.2617 | AvgConf: 0.2386
+  [RMGA] 1160/2005 | Running Acc: 73.10% | AvgEnt: 3.2650 | AvgConf: 0.2375
+  [RMGA] 1180/2005 | Running Acc: 72.97% | AvgEnt: 3.2653 | AvgConf: 0.2373
+  [RMGA] 1200/2005 | Running Acc: 73.17% | AvgEnt: 3.2655 | AvgConf: 0.2374
+  [RMGA] 1220/2005 | Running Acc: 73.11% | AvgEnt: 3.2654 | AvgConf: 0.2376
+  [RMGA] 1240/2005 | Running Acc: 72.90% | AvgEnt: 3.2653 | AvgConf: 0.2377
+  [RMGA] 1260/2005 | Running Acc: 73.10% | AvgEnt: 3.2682 | AvgConf: 0.2367
+  [RMGA] 1280/2005 | Running Acc: 72.89% | AvgEnt: 3.2696 | AvgConf: 0.2363
+  [RMGA] 1300/2005 | Running Acc: 72.69% | AvgEnt: 3.2707 | AvgConf: 0.2360
+  [RMGA] 1320/2005 | Running Acc: 72.50% | AvgEnt: 3.2698 | AvgConf: 0.2364
+  [RMGA] 1340/2005 | Running Acc: 72.54% | AvgEnt: 3.2707 | AvgConf: 0.2360
+  [RMGA] 1360/2005 | Running Acc: 72.50% | AvgEnt: 3.2701 | AvgConf: 0.2360
+  [RMGA] 1380/2005 | Running Acc: 72.68% | AvgEnt: 3.2713 | AvgConf: 0.2357
+  [RMGA] 1400/2005 | Running Acc: 72.71% | AvgEnt: 3.2719 | AvgConf: 0.2356
+  [RMGA] 1420/2005 | Running Acc: 72.82% | AvgEnt: 3.2707 | AvgConf: 0.2359
+  [RMGA] 1440/2005 | Running Acc: 72.92% | AvgEnt: 3.2713 | AvgConf: 0.2357
+  [RMGA] 1460/2005 | Running Acc: 72.95% | AvgEnt: 3.2721 | AvgConf: 0.2354
+  [RMGA] 1480/2005 | Running Acc: 72.97% | AvgEnt: 3.2703 | AvgConf: 0.2359
+  [RMGA] 1500/2005 | Running Acc: 73.00% | AvgEnt: 3.2692 | AvgConf: 0.2361
+  [RMGA] 1520/2005 | Running Acc: 72.96% | AvgEnt: 3.2706 | AvgConf: 0.2357
+  [RMGA] 1540/2005 | Running Acc: 72.99% | AvgEnt: 3.2707 | AvgConf: 0.2355
+  [RMGA] 1560/2005 | Running Acc: 72.82% | AvgEnt: 3.2690 | AvgConf: 0.2360
+  [RMGA] 1580/2005 | Running Acc: 72.66% | AvgEnt: 3.2690 | AvgConf: 0.2361
+  [RMGA] 1600/2005 | Running Acc: 72.75% | AvgEnt: 3.2663 | AvgConf: 0.2370
+  [RMGA] 1620/2005 | Running Acc: 72.65% | AvgEnt: 3.2650 | AvgConf: 0.2373
+  [RMGA] 1640/2005 | Running Acc: 72.56% | AvgEnt: 3.2640 | AvgConf: 0.2377
+  [RMGA] 1660/2005 | Running Acc: 72.59% | AvgEnt: 3.2639 | AvgConf: 0.2378
+  [RMGA] 1680/2005 | Running Acc: 72.68% | AvgEnt: 3.2652 | AvgConf: 0.2374
+  [RMGA] 1700/2005 | Running Acc: 72.65% | AvgEnt: 3.2653 | AvgConf: 0.2373
+  [RMGA] 1720/2005 | Running Acc: 72.85% | AvgEnt: 3.2651 | AvgConf: 0.2374
+  [RMGA] 1740/2005 | Running Acc: 72.99% | AvgEnt: 3.2638 | AvgConf: 0.2377
+  [RMGA] 1760/2005 | Running Acc: 72.90% | AvgEnt: 3.2645 | AvgConf: 0.2375
+  [RMGA] 1780/2005 | Running Acc: 72.98% | AvgEnt: 3.2626 | AvgConf: 0.2382
+  [RMGA] 1800/2005 | Running Acc: 72.94% | AvgEnt: 3.2617 | AvgConf: 0.2384
+  [RMGA] 1820/2005 | Running Acc: 72.91% | AvgEnt: 3.2628 | AvgConf: 0.2381
+  [RMGA] 1840/2005 | Running Acc: 72.88% | AvgEnt: 3.2630 | AvgConf: 0.2380
+  [RMGA] 1860/2005 | Running Acc: 72.85% | AvgEnt: 3.2635 | AvgConf: 0.2377
+  [RMGA] 1880/2005 | Running Acc: 73.03% | AvgEnt: 3.2613 | AvgConf: 0.2384
+  [RMGA] 1900/2005 | Running Acc: 73.00% | AvgEnt: 3.2621 | AvgConf: 0.2383
+  [RMGA] 1920/2005 | Running Acc: 73.12% | AvgEnt: 3.2620 | AvgConf: 0.2383
+  [RMGA] 1940/2005 | Running Acc: 73.09% | AvgEnt: 3.2620 | AvgConf: 0.2384
+  [RMGA] 1960/2005 | Running Acc: 73.16% | AvgEnt: 3.2607 | AvgConf: 0.2387
+  [RMGA] 1980/2005 | Running Acc: 73.23% | AvgEnt: 3.2609 | AvgConf: 0.2388
+  [RMGA] 2000/2005 | Running Acc: 73.25% | AvgEnt: 3.2604 | AvgConf: 0.2389
+  [RMGA] 2005/2005 | Running Acc: 73.22% | AvgEnt: 3.2603 | AvgConf: 0.2390
+
+[RESULT] RMGA Test Accuracy           : 73.22%
+[RESULT] Mean Prediction Entropy      : 3.2603
+[RESULT] Mean Confidence              : 0.2390
+[RESULT] Stability Index (std of cls) : 18.11%
+
+[RESULT] Per-class Accuracy (RMGA):
+  BaseballPitch                   39/ 45 =  86.7%
+  Basketball                      28/ 41 =  68.3%
+  BenchPress                      38/ 48 =  79.2%
+  Biking                          38/ 44 =  86.4%
+  Billiards                       45/ 45 = 100.0%
+  BreastStroke                    26/ 30 =  86.7%
+  CleanAndJerk                    15/ 34 =  44.1%
+  Diving                          41/ 46 =  89.1%
+  Drumming                        32/ 48 =  66.7%
+  Fencing                         19/ 33 =  57.6%
+  GolfSwing                       31/ 43 =  72.1%
+  HighJump                        10/ 37 =  27.0%
+  HorseRace                       34/ 38 =  89.5%
+  HorseRiding                     53/ 59 =  89.8%
+  HulaHoop                        17/ 38 =  44.7%
+  JavelinThrow                     9/ 35 =  25.7%
+  JugglingBalls                   30/ 37 =  81.1%
+  JumpRope                        32/ 45 =  71.1%
+  JumpingJack                     33/ 37 =  89.2%
+  Kayaking                        42/ 47 =  89.4%
+  Lunges                          22/ 42 =  52.4%
+  MilitaryParade                  37/ 38 =  97.4%
+  Mixing                          31/ 42 =  73.8%
+  Nunchucks                       24/ 45 =  53.3%
+  PizzaTossing                    11/ 34 =  32.4%
+  PlayingGuitar                   35/ 48 =  72.9%
+  PlayingPiano                    10/ 32 =  31.2%
+  PlayingTabla                    31/ 37 =  83.8%
+  PlayingViolin                   18/ 30 =  60.0%
+  PoleVault                       39/ 48 =  81.2%
+  PommelHorse                     25/ 37 =  67.6%
+  PullUps                         30/ 36 =  83.3%
+  Punch                           44/ 48 =  91.7%
+  PushUps                         26/ 32 =  81.2%
+  RockClimbingIndoor              33/ 44 =  75.0%
+  RopeClimbing                    29/ 39 =  74.4%
+  Rowing                          29/ 41 =  70.7%
+  SalsaSpin                       26/ 40 =  65.0%
+  SkateBoarding                   25/ 36 =  69.4%
+  Skiing                          38/ 43 =  88.4%
+  Skijet                          20/ 30 =  66.7%
+  SoccerJuggling                  30/ 47 =  63.8%
+  Swing                           40/ 41 =  97.6%
+  TaiChi                          17/ 30 =  56.7%
+  TennisSwing                     40/ 50 =  80.0%
+  ThrowDiscus                     33/ 39 =  84.6%
+  TrampolineJumping               30/ 36 =  83.3%
+  VolleyballSpiking               24/ 35 =  68.6%
+  WalkingWithDog                  28/ 37 =  75.7%
+  YoYo                            31/ 38 =  81.6%
+
+[RESULT] Overall RMGA Accuracy: 73.22%
+
+=================================================================
+  DONE.
+=================================================================

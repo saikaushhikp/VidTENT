@@ -22,7 +22,7 @@ SWAP THE MODEL  — only change the 3 lines below:
 # ⚙️  MODEL SWAP ZONE — change only these 3 lines for a new backbone
 #
 # ── 2D CNN backbones (torchvision.models) ──────────────────
-MODEL_NAME   = "mobilenet_v3_small"               # torchvision model function name
+# MODEL_NAME   = "mobilenet_v3_small"               # torchvision model function name
 FEATURE_DIM  = 576                                 # channels coming out of backbone (before head)
 PRETRAINED   = True                                # use ImageNet pretrained weights
 #
@@ -36,7 +36,7 @@ PRETRAINED   = True                                # use ImageNet pretrained wei
 # [NEW] For video models, FEATURE_DIM is unused (auto-detected from model.fc).
 # Simply set MODEL_NAME to one of the names below; leave FEATURE_DIM as-is.
 #
-# MODEL_NAME   = "r3d_18"         # ResNet-3D 18-layer (C, T, H, W input)
+MODEL_NAME   = "r3d_18"         # ResNet-3D 18-layer (C, T, H, W input)
 # MODEL_NAME   = "mc3_18"         # Mixed-Conv3D 18-layer
 # MODEL_NAME   = "r2plus1d_18"    # R(2+1)D 18-layer
 # ============================================================
@@ -81,7 +81,7 @@ def build_parser():
     p.add_argument("--clean_dir",   default=CLEAN_DIR, help="Clean video folder-Uncorrupted")
     p.add_argument("--mixed_dir",   default=MIXED_DIR, help="Corrupted video folder")
     p.add_argument("--ckpt_dir",    default="checkpoints", help="Directory to save checkpoints")
-    p.add_argument("--best_model",  default="best_model.pth", help="Path for best model weights")
+    p.add_argument("--best_model",  default=MODEL_NAME+"_"+"best_model.pth", help="Path for best model weights")
 
     # Data
     p.add_argument("--num_frames",  type=int, default=16,  help="Frames sampled per video")
@@ -92,7 +92,7 @@ def build_parser():
     # Training
     p.add_argument("--epochs",      type=int,   default=40)
     p.add_argument("--batch_size",  type=int,   default=8)
-    p.add_argument("--lr",          type=float, default=1e-3)
+    p.add_argument("--lr",          type=float, default=1e-4)
     p.add_argument("--weight_decay",type=float, default=1e-4)
     p.add_argument("--num_workers", type=int,   default=4)
     p.add_argument("--save_every",  type=int,   default=5,  help="Save checkpoint every N epochs")
@@ -222,9 +222,9 @@ def build_transforms(img_size, train=True):
             T.ToPILImage(),
             T.Resize((img_size + 16, img_size + 16)),
             # T.Resize((img_size, img_size)),
-            # T.RandomCrop(img_size),
-            # T.RandomHorizontalFlip(),
-            # T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+            T.RandomCrop(img_size),
+            T.RandomHorizontalFlip(),
+            T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
             T.ToTensor(),
             T.Normalize(MEAN, STD),
         ])

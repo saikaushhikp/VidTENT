@@ -1,0 +1,10 @@
+run_id,architecture,frames,batch,epochs,trainable_params,train_test_split,vitta_on,rmga_on
+r3d_18-F8-B40-E1,3DResNet18 (r3d_18),8,40,1,"33,191,922",70-30,True,True
+r3d_18-F16-B24-E1,3DResNet18 (r3d_18),16,24,1,"33,191,922",70-30,True,True
+r3d_18-F32-B40-E1,3DResNet18 (r3d_18),32,40,1,"33,191,922",70-30,True,True
+mc3_18-F8-B40-E2,MC3-18,8,40,2,"11,515,890",70-30,True,True
+mc3_18-F16-B24-E2,MC3-18,16,24,2,"11,515,890",70-30,True,True
+mc3_18-F32-B40-E2,MC3-18,32,40,2,"11,515,890",70-30,True,True
+r2plus1d_18-F8-B40-E2,R(2+1)D-18,8,40,2,"31,325,775",70-30,True,True
+r2plus1d_18-F16-B24-E2,R(2+1)D-18,16,24,2,"31,325,775",70-30,True,True
+r2plus1d_18-F32-B40-E2,R(2+1)D-18,32,40,2,"31,325,775",70-30,True,True

@@ -400,11 +400,11 @@ def _parse_args() -> argparse.Namespace:
         help='Path to CSV file containing video_path,corruption_type mappings (default: datasets/UCF50_mixed_labels.csv)',
     )
     parser.add_argument(
-        '--prob', type=float, default=0.70,
+        '--prob', type=float, default=0.65,
         help='Probability (0-1) of corrupting each frame (default: 0.70)',
     )
     parser.add_argument(
-        '--severity', type=int, default=4, choices=range(1, 6), metavar='1-5',
+        '--severity', type=int, default=3, choices=range(1, 6), metavar='1-5',
         help='Corruption severity: 1 = mild … 5 = severe (default: 4)',
     )
     parser.add_argument(

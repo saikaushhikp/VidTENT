@@ -1,0 +1,4 @@
+architecture,8_frames,16_frames,32_frames,best_setting
+3DResNet18 (r3d_18),37.46,44.54,43.64,16_frames
+MC3-18,57.11,64.69,62.0,16_frames
+R(2+1)D-18,50.67,57.76,61.25,32_frames

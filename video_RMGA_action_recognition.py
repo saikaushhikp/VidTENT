@@ -24,21 +24,18 @@ Default : MobileNetV3-Small (lightweight, RTX-3050 friendly)
 ============================================================
 
 SWAP THE MODEL  — only change the 3 lines below:
-
-Commands via CLI:
-
 """
 
 # ============================================================
 # ⚙️  MODEL SWAP ZONE — change only these 3 lines for a new backbone
 #
 # ── 2D CNN options (existing pipeline) ──
-MODEL_NAME   = "mobilenet_v3_small"   # torchvision model function name
+# MODEL_NAME   = "mobilenet_v3_small"   # torchvision model function name
 FEATURE_DIM  = 576                    # channels out of 2D backbone (ignored for video models)
 PRETRAINED   = True                   # use ImageNet / Kinetics pretrained weights
 #
 # ── 3D Video model options (NEW) ──────────
-# MODEL_NAME = "r3d_18"               # ResNet-3D-18      | input (B,C,T,H,W)
+MODEL_NAME = "r3d_18"               # ResNet-3D-18      | input (B,C,T,H,W)
 # MODEL_NAME = "mc3_18"               # Mixed-Conv3D-18   | input (B,C,T,H,W)
 # MODEL_NAME = "r2plus1d_18"          # R(2+1)D-18        | input (B,C,T,H,W)
 #
@@ -103,7 +100,7 @@ def build_parser():
 
     # ── Training ──────────────────────────────────────────────
     p.add_argument("--epochs",       type=int,   default=40)
-    p.add_argument("--batch_size",   type=int,   default=8)
+    p.add_argument("--batch_size",   type=int,   default=16)
     p.add_argument("--lr",           type=float, default=1e-3)
     p.add_argument("--weight_decay", type=float, default=1e-4)
     p.add_argument("--num_workers",  type=int,   default=4)
@@ -374,17 +371,30 @@ class VideoModel3D(nn.Module):
         return self.backbone(x)   # (B, num_classes)
 
 
-def build_model(num_classes: int, model_name=MODEL_NAME,
-                feat_dim=FEATURE_DIM, pretrained=PRETRAINED):
+def build_model(num_classes: int, model_name=None,
+                feat_dim=None, pretrained=None):
     """
     Build and return the appropriate model.
+
+    Defaults fall back to the module-level MODEL_NAME / FEATURE_DIM / PRETRAINED
+    constants. Using None here (instead of the globals directly) avoids a
+    NameError when Python evaluates default argument values at function-definition
+    time, before the constants are guaranteed to be in scope.
 
     [3D SUPPORT] If model_name is in VIDEO_MODELS, loads from
     torchvision.models.video and wraps in VideoModel3D.
     Otherwise, existing 2D FrameAggregator pipeline is used unchanged.
     """
+    # Resolve defaults from module-level constants
+    if model_name is None:
+        model_name = MODEL_NAME
+    if feat_dim is None:
+        feat_dim = FEATURE_DIM
+    if pretrained is None:
+        pretrained = PRETRAINED
+
     print(f"\n[MODEL] Loading backbone : {model_name} (pretrained={pretrained})")
-    print(f"[MODEL] Pipeline         : {'3D Video Model' if IS_VIDEO_MODEL else '2D CNN + FrameAggregator'}")
+    print(f"[MODEL] Pipeline         : {'3D Video Model' if model_name in VIDEO_MODELS else '2D CNN + FrameAggregator'}")
 
     # ── [3D SUPPORT] Video model branch ───────────────────────────────────────
     if model_name in VIDEO_MODELS:
@@ -405,11 +415,19 @@ def build_model(num_classes: int, model_name=MODEL_NAME,
         net.fc      = nn.Linear(in_features, num_classes)
         print(f"[MODEL] FC head replaced: {in_features} → {num_classes}")
 
-        model        = VideoModel3D(net)
-        total_params = sum(p.numel() for p in model.parameters())
-        trainable    = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        # ── IMPORTANT: return the raw net directly, NOT wrapped in VideoModel3D ──
+        # This keeps the state-dict key names identical to what the reference
+        # training script (ucf50_action_recognition.py) produces:
+        #   "stem.0.weight", "layer1.…", "fc.weight"   ← flat, no "backbone." prefix
+        #
+        # Wrapping in VideoModel3D shifts all keys to "backbone.stem.0.weight" etc.,
+        # causing load_state_dict() mismatches whenever weights come from the
+        # reference training script.  The raw net already handles (B,C,T,H,W) input
+        # natively, so no wrapper is needed for correctness.
+        total_params = sum(p.numel() for p in net.parameters())
+        trainable    = sum(p.numel() for p in net.parameters() if p.requires_grad)
         print(f"[MODEL] Total params: {total_params:,}  |  Trainable: {trainable:,}")
-        return model
+        return net   # ← raw torchvision video model, same as reference script
 
     # ── 2D CNN branch (UNCHANGED) ──────────────────────────────────────────────
     constructor = getattr(tvm, model_name)
@@ -505,9 +523,15 @@ class ViTTA:
                     bn_param_names.add(full_name)
 
         if not bn_param_names:
-            print("[ViTTA] ⚠  No BatchNorm found — falling back to classifier head.")
+            # Fallback: adapt the classification head instead.
+            # Covers both 2D models ("classifier") and raw torchvision video
+            # models ("fc") — note: after removing VideoModel3D, video nets
+            # expose their head as top-level "fc", not "backbone.fc".
+            print("[ViTTA] ⚠  No BatchNorm found — falling back to head adaptation.")
+            head_prefixes = ("classifier", "fc")
             for mod_name, module in adapted.named_modules():
-                if mod_name.startswith("classifier") or mod_name.startswith("backbone.fc"):
+                if any(mod_name == p or mod_name.startswith(p + ".")
+                       for p in head_prefixes):
                     for param_name, _ in module.named_parameters(recurse=False):
                         full_name = f"{mod_name}.{param_name}" if mod_name else param_name
                         bn_param_names.add(full_name)
@@ -665,9 +689,15 @@ class RMGA:
             selected = set()
 
         if not selected:
-            print("[RMGA] ⚠  No BN found — falling back to classifier/FC head.")
+            # Fallback: adapt the classification head instead.
+            # "classifier" → 2D CNN models (MobileNet, EfficientNet…)
+            # "fc"         → raw torchvision video models (r3d_18, mc3_18, r2plus1d_18)
+            #                after removing the VideoModel3D wrapper, "fc" is top-level.
+            print("[RMGA] ⚠  No BN found — falling back to head adaptation.")
+            head_prefixes = ("classifier", "fc")
             for mod_name, module in adapted.named_modules():
-                if mod_name.startswith("classifier") or mod_name.startswith("backbone.fc"):
+                if any(mod_name == p or mod_name.startswith(p + ".")
+                       for p in head_prefixes):
                     for param_name, _ in module.named_parameters(recurse=False):
                         full_name = (f"{mod_name}.{param_name}"
                                      if mod_name else param_name)
@@ -676,9 +706,9 @@ class RMGA:
         for name, param in adapted.named_parameters():
             param.requires_grad_(name in selected)
 
-        n_trainable = sum(p.numel() for p in adapted.parameters() if p.requires_grad)
-        print(f"[RMGA] Adapting {len(selected)} BN tensors "
-              f"({n_trainable:,} scalars) — last {last_bn_blocks} BN blocks.")
+        # n_trainable = sum(p.numel() for p in adapted.parameters() if p.requires_grad)
+        # print(f"[RMGA] Adapting {len(selected)} BN tensors "
+            #   f"({n_trainable:,} scalars) — last {last_bn_blocks} BN blocks.")
         return adapted, selected
 
     @staticmethod
@@ -700,21 +730,69 @@ class RMGA:
         return (diff.mean(dim=0, keepdim=True) > tau).float()
 
     def _warmup_bn(self, adapted_model: nn.Module, clip_tensors: list):
-        """Forward-only BN statistics alignment from test clips."""
+        """
+        Forward-only BN statistics alignment from test clips.
+        Must be called BEFORE _freeze_bn_running_stats so that running_mean /
+        running_var are estimated from the test-time distribution first.
+        """
         with torch.no_grad():
             for clip in clip_tensors:
                 adapted_model(clip.unsqueeze(0).to(self.device))
+
+    @staticmethod
+    def _freeze_bn_running_stats(model: nn.Module):
+        """
+        Lock BN running statistics after warmup.
+
+        WHY THIS IS NEEDED
+        ──────────────────
+        _copy_model_to_adapt() calls adapted.train(), which puts BN layers in
+        train mode. In train mode, every forward pass — even inside torch.no_grad()
+        — recomputes and OVERWRITES running_mean / running_var from the current
+        batch. When the batch is a single frame (B=1, T=1), variance ≈ 0 and
+        the running stats become garbage, making all subsequent predictions random.
+
+        FIX: switch every BN layer to eval() mode so it uses the running stats
+        that were correctly estimated during _warmup_bn (from full clips).
+        The affine parameters γ and β still have requires_grad=True, so
+        adaptation gradients continue to flow through them normally.
+        This is the canonical TENT formulation for BN-based TTA.
+
+        This is especially critical for 3D video models where the backward pass
+        uses window clips that may be shorter than the training clip length.
+        """
+        for module in model.modules():
+            if isinstance(module, nn.modules.batchnorm._BatchNorm):
+                module.eval()   # freeze running_mean / running_var
+                                # does NOT affect requires_grad on weight / bias
 
     def _rhythmic_adapt(self, adapted_model: nn.Module, clip_tensors: list):
         """
         Core RMGA loop: motion-gated peak-anchored backward pass.
 
-        [3D SUPPORT] For 3D video models, a single-frame input is shaped
-        as (1, C, 1, H, W) instead of (1, 1, C, H, W).
-        This is because 3D models expect (B, C, T, H, W).
+        TWO PATHS — selected by self.is_video_model:
+        ─────────────────────────────────────────────
+        2D CNN path  (unchanged):
+          Per-frame entropy scan inside each window.
+          Peak frame (single image) triggers the backward pass.
+          Input shapes: (win_len, 1, C, H, W) for scan; (1, 1, C, H, W) for backward.
 
-        The motion mask is always computed in (C, H, W) space regardless
-        of model type, so _compute_motion_mask is model-agnostic.
+        3D Video model path  (redesigned to fix 0% accuracy):
+          WHY single-frame T=1 inputs were wrong:
+            • 3D ResNets have temporal conv kernels of size 3 trained on 16-frame clips.
+              A T=1 input gives meaningless features with no temporal context.
+            • More critically: BN in train mode recomputes running stats from each
+              forward pass.  With B=1, T=1, variance≈0 → NaN / inf activations that
+              completely destroy the good stats set by _warmup_bn.
+
+          FIX — two-part:
+          (a) _freeze_bn_running_stats() is called by predict() BEFORE this method,
+              locking running_mean/var to the warmup values.  γ/β remain trainable.
+          (b) Entropy scoring and backward both use FULL window clips (C, win_len, H,W)
+              so the 3D model always receives proper temporal context.
+              Peak anchoring selects the WINDOW (not the frame) with lowest entropy.
+              The spatial motion mask is averaged across the window's frames and applied
+              channel-wise before the backward pass.
         """
         trainable_params = [p for p in adapted_model.parameters()
                             if p.requires_grad]
@@ -727,87 +805,128 @@ class RMGA:
 
         for _step in range(self.adapt_steps):
             for clip in clip_tensors:
-                # clip is either (T,C,H,W) for 2D or (C,T,H,W) for 3D
-                # Normalise to (T, C, H, W) internally for motion mask logic
+
+                # ── Always normalise internal representation to (T, C, H, W) ──
+                # for motion mask computation (model-agnostic).
                 if self.is_video_model:
-                    # (C, T, H, W) → (T, C, H, W) for frame indexing
-                    clip_tchw = clip.permute(1, 0, 2, 3)   # (T, C, H, W)
+                    clip_cthw = clip.to(self.device)           # (C, T, H, W)
+                    clip_tchw = clip_cthw.permute(1, 0, 2, 3)  # (T, C, H, W)
                 else:
-                    clip_tchw = clip                        # already (T, C, H, W)
+                    clip_tchw = clip.to(self.device)           # (T, C, H, W)
 
                 T_len, C, H, W = clip_tchw.shape
-                clip_dev       = clip_tchw.to(self.device)
 
-                # ── 1. Build motion masks (T, 1, H, W) ────────────────
-                masks = [torch.ones(1, H, W, device=self.device)]
+                # ── 1. Build motion masks (T, 1, H, W) ────────────────────────
+                masks = [torch.ones(1, H, W, device=self.device)]  # t=0: all active
                 for t in range(1, T_len):
-                    m = self._compute_motion_mask(
-                        clip_dev[t], clip_dev[t - 1], self.tau
-                    )
-                    masks.append(m)
+                    masks.append(self._compute_motion_mask(
+                        clip_tchw[t], clip_tchw[t - 1], self.tau
+                    ))
                 masks = torch.stack(masks, dim=0)   # (T, 1, H, W)
 
-                # ── 2. Slide windows ───────────────────────────────────
+                # ── 2. Slide windows and score ─────────────────────────────────
                 W_size    = min(self.window_size, T_len)
                 n_windows = max(1, (T_len + W_size - 1) // W_size)
 
-                for w in range(n_windows):
-                    start   = w * W_size
-                    end     = min(start + W_size, T_len)
-                    win_f   = clip_dev[start:end]   # (win_len, C, H, W)  in TCHW
-                    win_m   = masks[start:end]       # (win_len, 1, H, W)
-                    win_len = end - start
+                # ════════════════════════════════════════════════════════════════
+                # 3D VIDEO MODEL PATH
+                # Entropy scoring and backward use FULL window clips (win_len ≥ 1
+                # temporal frames), preserving the temporal context the 3D backbone
+                # needs.  Peak anchoring selects the best WINDOW, not the best frame.
+                # ════════════════════════════════════════════════════════════════
+                if self.is_video_model:
+                    win_entropies     = []
+                    win_motion_weights = []
 
-                    # ── 3. Per-frame entropy scan (no grad) ───────────
+                    # ── 3a. Score every window (no grad) ──────────────────────
                     with torch.no_grad():
-                        # Each frame fed as a single-frame "video"
-                        # 2D : (frame, 1, C, H, W)  → (B=frame, T=1, C, H, W)
-                        # 3D : (frame, C, 1, H, W)  → (B=frame, C, T=1, H, W)
-                        if self.is_video_model:
-                            # win_f: (win_len, C, H, W)
-                            # need  : (win_len, C, 1, H, W)
-                            batch_in = win_f.unsqueeze(2)  # (win_len, C, 1, H, W)
-                        else:
-                            # win_f: (win_len, C, H, W)
-                            # need  : (win_len, 1, C, H, W)
-                            batch_in = win_f.unsqueeze(1)  # (win_len, 1, C, H, W)
+                        for w in range(n_windows):
+                            start   = w * W_size
+                            end     = min(start + W_size, T_len)
+                            # Window clip in (C, win_len, H, W) — correct for 3D model
+                            win_clip = clip_cthw[:, start:end, :, :]
+                            win_in   = win_clip.unsqueeze(0)         # (1, C, win_len, H, W)
+                            logits   = adapted_model(win_in)
+                            win_entropies.append(self._entropy(logits).item())
+                            # Motion weight: mean active pixel fraction over the window
+                            win_motion_weights.append(
+                                masks[start:end].mean().item()
+                            )
 
-                        batch_logits    = adapted_model(batch_in)
-                        frame_entropies = [
-                            self._entropy(batch_logits[t:t+1]).item()
-                            for t in range(win_len)
-                        ]
+                    # ── 4a. Peak anchoring: argmin entropy over valid windows ──
+                    # A "valid" window has meaningful motion (not pure background)
+                    valid = [(i, e) for i, (e, mw) in
+                             enumerate(zip(win_entropies, win_motion_weights))
+                             if mw >= 1e-4]
+                    if not valid:
+                        continue   # no motion in any window → skip clip
 
-                    # ── 4. Peak anchoring: t* = argmin H ──────────────
-                    peak_t        = int(np.argmin(frame_entropies))
-                    motion_weight = win_m[peak_t].mean().item()
+                    peak_w      = min(valid, key=lambda x: x[1])[0]
+                    peak_motion = win_motion_weights[peak_w]
+                    p_start     = peak_w * W_size
+                    p_end       = min(p_start + W_size, T_len)
 
-                    if motion_weight < 1e-4:
-                        continue   # no motion → skip window
-
-                    # ── 5. Motion-gated backward on peak frame ─────────
-                    peak_frame  = win_f[peak_t]             # (C, H, W)
-                    peak_mask   = win_m[peak_t]             # (1, H, W)
-                    masked_frame = peak_frame * peak_mask   # (C, H, W)
-
-                    # Shape for model forward:
-                    # 2D : (1, 1, C, H, W)  i.e. B=1, T=1
-                    # 3D : (1, C, 1, H, W)  i.e. B=1, C, T=1
-                    if self.is_video_model:
-                        # masked_frame (C,H,W) → (1,C,1,H,W)
-                        peak_input = masked_frame.unsqueeze(0).unsqueeze(2)
-                    else:
-                        # masked_frame (C,H,W) → (1,1,C,H,W)
-                        peak_input = masked_frame.unsqueeze(0).unsqueeze(0)
+                    # ── 5a. Spatial motion-gated backward on peak window ───────
+                    # Spatial mask: mean over time → (1, H, W); broadcast over C,T
+                    peak_win_cthw = clip_cthw[:, p_start:p_end, :, :]   # (C, wl, H, W)
+                    spatial_mask  = masks[p_start:p_end].mean(dim=0)    # (1, H, W)
+                    # Broadcast: (1, H, W) → (1, 1, H, W) aligns with (C, wl, H, W)
+                    masked_win    = peak_win_cthw * spatial_mask.unsqueeze(0)
+                    peak_input    = masked_win.unsqueeze(0)              # (1, C, wl, H, W)
 
                     opt.zero_grad()
                     with torch.cuda.amp.autocast(enabled=self.use_fp16):
                         logits = adapted_model(peak_input)
-                        loss   = self._entropy(logits) * motion_weight
+                        loss   = self._entropy(logits) * peak_motion
 
                     scaler.scale(loss).backward()
                     scaler.step(opt)
                     scaler.update()
+
+                # ════════════════════════════════════════════════════════════════
+                # 2D CNN PATH  (original per-frame logic — completely unchanged)
+                # ════════════════════════════════════════════════════════════════
+                else:
+                    clip_dev = clip_tchw   # (T, C, H, W)
+
+                    for w in range(n_windows):
+                        start   = w * W_size
+                        end     = min(start + W_size, T_len)
+                        win_f   = clip_dev[start:end]   # (win_len, C, H, W)
+                        win_m   = masks[start:end]       # (win_len, 1, H, W)
+                        win_len = end - start
+
+                        # ── 3b. Per-frame entropy scan (no grad) ──────────────
+                        with torch.no_grad():
+                            # (win_len, 1, C, H, W) — each frame as a T=1 clip
+                            batch_in     = win_f.unsqueeze(1)
+                            batch_logits = adapted_model(batch_in)
+                            frame_entropies = [
+                                self._entropy(batch_logits[t:t+1]).item()
+                                for t in range(win_len)
+                            ]
+
+                        # ── 4b. Peak anchoring: argmin entropy ────────────────
+                        peak_t        = int(np.argmin(frame_entropies))
+                        motion_weight = win_m[peak_t].mean().item()
+
+                        if motion_weight < 1e-4:
+                            continue   # no motion → skip window
+
+                        # ── 5b. Motion-gated backward on peak frame ───────────
+                        peak_frame   = win_f[peak_t]              # (C, H, W)
+                        masked_frame = peak_frame * win_m[peak_t] # (C, H, W)
+                        # (1, 1, C, H, W) — B=1, T=1
+                        peak_input   = masked_frame.unsqueeze(0).unsqueeze(0)
+
+                        opt.zero_grad()
+                        with torch.cuda.amp.autocast(enabled=self.use_fp16):
+                            logits = adapted_model(peak_input)
+                            loss   = self._entropy(logits) * motion_weight
+
+                        scaler.scale(loss).backward()
+                        scaler.step(opt)
+                        scaler.update()
 
     def predict(self, video_path: str, num_frames: int,
                 transform, label: int = -1):
@@ -849,10 +968,18 @@ class RMGA:
         )
         adapted.to(self.device)
 
-        # ── BN warm-up (forward only) ─────────────────────────
+        # ── BN statistics warm-up (forward only, full clips) ─────────────
+        # Updates running_mean / running_var from the test-time distribution.
         self._warmup_bn(adapted, all_clip_tensors)
 
-        # ── RMGA rhythmic backward ────────────────────────────
+        # ── Freeze BN running stats after warmup ───────────────────────────
+        # Locks running_mean / running_var so that single-frame or short-window
+        # forward passes during _rhythmic_adapt cannot overwrite them.
+        # γ / β remain trainable — gradients still flow through them normally.
+        # This is critical for 3D models and consistent with the TENT formulation.
+        self._freeze_bn_running_stats(adapted)
+
+        # ── RMGA rhythmic backward ─────────────────────────────────────────
         self._rhythmic_adapt(adapted, all_clip_tensors)
 
         # ── Aggregate predictions ─────────────────────────────
@@ -936,7 +1063,91 @@ def save_checkpoint(model, optimizer, epoch, path):
 
 
 # ─────────────────────────────────────────────────────────────
-# 9.  MAIN
+# 9.  CHECKPOINT LOADER  (key-remapping helper)
+# ─────────────────────────────────────────────────────────────
+def smart_load_state_dict(model: nn.Module, path, device):
+    """
+    Robust state-dict loader that handles three common key-format mismatches:
+
+    Design goal:
+    ─────────────
+    Both the reference training script (ucf50_action_recognition.py) and
+    this file now produce identical model structures for video models —
+    the raw torchvision net, no wrapper — so Strategy 1 (strict) succeeds
+    for any checkpoint saved by either script.
+
+    Strategies 2 and 3 are kept as safety nets for checkpoints created by
+    older versions of this file that used the VideoModel3D wrapper
+    (keys prefixed with "backbone.").
+
+    Strategy (try in order, stop at first success):
+    ───────────────────────────────────────────────
+    1. Strict load  — works for all current checkpoints (no wrapper).
+    2. Add "backbone." prefix to every key in the saved dict.
+       Legacy fix: raw-model checkpoint → old VideoModel3D wrapper.
+    3. Strip "backbone." prefix from every key in the saved dict.
+       Legacy fix: old VideoModel3D checkpoint → current raw model.
+    4. Load with strict=False as a last resort — partial loading,
+       prints a warning so the user knows something was skipped.
+
+    Also transparently unwraps checkpoints saved by save_checkpoint()
+    (which stores {"epoch":…, "model": state_dict, "optimizer":…}).
+    """
+    raw = torch.load(path, map_location=device)
+
+    # Unwrap save_checkpoint() dicts that contain a "model" key
+    if isinstance(raw, dict) and "model" in raw and "epoch" in raw:
+        print(f"[CKPT] Detected save_checkpoint() format — extracting 'model' key.")
+        state_dict = raw["model"]
+    else:
+        state_dict = raw
+
+    # ── Strategy 1: strict load ───────────────────────────────
+    try:
+        model.load_state_dict(state_dict, strict=True)
+        print(f"[CKPT] ✅ Loaded (strict)  ← {path}")
+        return
+    except RuntimeError:
+        pass
+
+    # ── Strategy 2: add "backbone." prefix ────────────────────
+    # Needed when checkpoint was saved from a raw torchvision net
+    # but the current model wraps it inside VideoModel3D.backbone
+    remapped = {"backbone." + k: v for k, v in state_dict.items()}
+    try:
+        model.load_state_dict(remapped, strict=True)
+        print(f"[CKPT] ✅ Loaded (added 'backbone.' prefix)  ← {path}")
+        return
+    except RuntimeError:
+        pass
+
+    # ── Strategy 3: strip "backbone." prefix ──────────────────
+    # Needed when checkpoint has backbone. keys but model is unwrapped.
+    stripped = {}
+    for k, v in state_dict.items():
+        new_key = k[len("backbone."):] if k.startswith("backbone.") else k
+        stripped[new_key] = v
+    try:
+        model.load_state_dict(stripped, strict=True)
+        print(f"[CKPT] ✅ Loaded (stripped 'backbone.' prefix)  ← {path}")
+        return
+    except RuntimeError:
+        pass
+
+    # ── Strategy 4: non-strict fallback ───────────────────────
+    # Loads whatever keys match; skips the rest.
+    missing, unexpected = model.load_state_dict(state_dict, strict=False)
+    print(f"[CKPT] ⚠  Loaded with strict=False  ← {path}")
+    if missing:
+        print(f"[CKPT]    Missing  ({len(missing)}): {missing[:5]}"
+              f"{'…' if len(missing) > 5 else ''}")
+    if unexpected:
+        print(f"[CKPT]    Unexpected ({len(unexpected)}): {unexpected[:5]}"
+              f"{'…' if len(unexpected) > 5 else ''}")
+
+
+# ─────────────────────────────────────────────────────────────
+# 10.  MAIN
 # ─────────────────────────────────────────────────────────────
 def main():
     args = build_parser().parse_args()
@@ -1065,12 +1276,12 @@ def main():
                 save_checkpoint(model, optimizer, epoch, ckpt_path)
 
         print(f"\n[TRAIN DONE] Best Test Accuracy: {best_acc:.2f}%")
-        model.load_state_dict(torch.load(args.best_model, map_location=device))
+        smart_load_state_dict(model, args.best_model, device)
 
     elif args.mode == "eval_only":
         if args.load_weights is None:
             raise ValueError("--load_weights must be set in eval_only mode")
-        model.load_state_dict(torch.load(args.load_weights, map_location=device))
+        smart_load_state_dict(model, args.load_weights, device)
         print(f"[EVAL] Loaded weights from {args.load_weights}")
 
     # ── Step 5: Final Evaluation ──────────────────────────────
