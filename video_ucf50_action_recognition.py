@@ -1,53 +1,21 @@
 #!/usr/bin/env python3
 """
-============================================================
-Action Recognition on UCF50 / UCF50_mixed Dataset
-with ViTTA (Video Test-Time Adaptation) Support
-============================================================
-
-Paper Reference:
-  ViTTA: Video Test-Time Adaptation
-  https://arxiv.org/pdf/2211.15393
-  GitHub: https://github.com/wlin-at/ViTTA
-
-Author  : Auto-generated
-Dataset : UCF50 (action recognition, 50 classes)
-Default : MobileNetV3-Small (lightweight, RTX-3050 friendly)
-============================================================
-
-SWAP THE MODEL  — only change the 3 lines below:
+UCF50 training/evaluation script with optional ViTTA test-time adaptation.
 """
 
-# ============================================================
-# ⚙️  MODEL SWAP ZONE — change only these 3 lines for a new backbone
-#
-# ── 2D CNN backbones (torchvision.models) ──────────────────
-# MODEL_NAME   = "mobilenet_v3_small"               # torchvision model function name
+# Model selection
+# MODEL_NAME   = "mobilenet_v3_small"
 FEATURE_DIM  = 576                                 # channels coming out of backbone (before head)
 PRETRAINED   = True                                # use ImageNet pretrained weights
-#
 # MODEL_NAME   = "efficientnet_b1"
 # FEATURE_DIM  = 1280
-#
 # MODEL_NAME   = "resnet18"
 # FEATURE_DIM  = 512
-#
-# ── 3D / Video CNN backbones (torchvision.models.video) ────
-# [NEW] For video models, FEATURE_DIM is unused (auto-detected from model.fc).
-# Simply set MODEL_NAME to one of the names below; leave FEATURE_DIM as-is.
-#
 MODEL_NAME   = "r3d_18"         # ResNet-3D 18-layer (C, T, H, W input)
 # MODEL_NAME   = "mc3_18"         # Mixed-Conv3D 18-layer
 # MODEL_NAME   = "r2plus1d_18"    # R(2+1)D 18-layer
-# ============================================================
-
-# ─────────────────────────────────────────────────────────────
-# [NEW] Video model registry & flag
-# Any MODEL_NAME in this list triggers the 3D video pipeline.
-# ─────────────────────────────────────────────────────────────
 VIDEO_MODELS   = ["r3d_18", "mc3_18", "r2plus1d_18"]
 IS_VIDEO_MODEL = MODEL_NAME in VIDEO_MODELS          # True → 3D pipeline
-# ─────────────────────────────────────────────────────────────
 
 import os, sys, copy, time, random, argparse, warnings
 from pathlib import Path

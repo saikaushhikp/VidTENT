@@ -1,32 +1,8 @@
 #!/usr/bin/env python3
 """
-corrupt_ucf50_from_csv.py
-=========================
-Recreates the UCF50_mixed corrupted dataset using per-video corruption
-assignments stored in a CSV file (as produced by corrupt_ucf50.py --mixed).
+Recreate UCF50_mixed from a CSV mapping of video_path to corruption_type.
 
-Expected CSV format (header row required):
-    video_path,corruption_type
-    BaseballPitch/v_BaseballPitch_g01_c01.avi,gauss
-    ...
-
-For each row the corresponding source video is located under --src, the
-specified corruption is applied per-frame with probability --prob, and the
-result is written to:
-
-    <dst-root>/UCF50_mixed/<video_path>
-
-Usage
------
-  python corrupt_ucf50_from_csv.py --path datasets/UCF50_mixed_labels.csv
-
-  # Custom options
-  python corrupt_ucf50_from_csv.py --path datasets/UCF50_mixed_labels.csv --prob 0.70 --severity 4 --workers 4 --seed 42
-
-Dependencies
-------------
-  pip install opencv-python numpy tqdm
-  (ffmpeg with libx265 is optional but recommended for h265_abr)
+Expected CSV header: video_path,corruption_type
 """
 
 import argparse
@@ -400,11 +376,11 @@ def _parse_args() -> argparse.Namespace:
         help='Path to CSV file containing video_path,corruption_type mappings (default: datasets/UCF50_mixed_labels.csv)',
     )
     parser.add_argument(
-        '--prob', type=float, default=0.65,
+        '--prob', type=float, default=0.70,
         help='Probability (0-1) of corrupting each frame (default: 0.70)',
     )
     parser.add_argument(
-        '--severity', type=int, default=3, choices=range(1, 6), metavar='1-5',
+        '--severity', type=int, default=4, choices=range(1, 6), metavar='1-5',
         help='Corruption severity: 1 = mild … 5 = severe (default: 4)',
     )
     parser.add_argument(
@@ -472,8 +448,32 @@ def main() -> None:
     csv_mapping: Dict[str, str] = {}
     with open(args.path, 'r', newline='') as f:
         reader = csv.DictReader(f)
+        required_cols = {'video_path', 'corruption_type'}
+        if not reader.fieldnames or not required_cols.issubset(set(reader.fieldnames)):
+            print(
+                '[ERROR] CSV header must contain: video_path,corruption_type',
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        csv_unknown_corruptions = set()
         for row in reader:
-            csv_mapping[row['video_path']] = row['corruption_type']
+            video_path = row['video_path'].strip()
+            corruption = row['corruption_type'].strip()
+            if not video_path or not corruption:
+                continue
+            if corruption not in CORRUPTION_TYPES:
+                csv_unknown_corruptions.add(corruption)
+                continue
+            csv_mapping[video_path] = corruption
+
+    if csv_unknown_corruptions:
+        print(
+            f'[ERROR] Unknown corruption type(s) in CSV: {sorted(csv_unknown_corruptions)}\n'
+            f'        Valid choices: {CORRUPTION_TYPES}',
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     if not csv_mapping:
         print(f'[ERROR] CSV file is empty: {args.path}', file=sys.stderr)
@@ -525,7 +525,6 @@ def main() -> None:
             print(f'[ERROR] {rel_path} not found in CSV', file=sys.stderr)
             sys.exit(1)
         chosen_corruption = csv_mapping[rel_path]
-        chosen_corruption = "rain" # for testing
         dst_p = out_dir / src_p.relative_to(args.src)
         tasks.append((
             str(src_p),
@@ -536,6 +535,20 @@ def main() -> None:
             args.seed + i,
             has_ffmpeg,
         ))
+
+    extra_csv_paths = sorted(set(csv_mapping) - {
+        str(src_p.relative_to(args.src)) for src_p in src_videos
+    })
+    if extra_csv_paths:
+        print(
+            f'[ERROR] CSV contains {len(extra_csv_paths)} video path(s) not found under source directory.',
+            file=sys.stderr,
+        )
+        for p in extra_csv_paths[:5]:
+            print(f'        {p}', file=sys.stderr)
+        if len(extra_csv_paths) > 5:
+            print(f'        ... and {len(extra_csv_paths) - 5} more', file=sys.stderr)
+        sys.exit(1)
 
     _execute_tasks(tasks, args.workers, 'from_csv', out_dir)
     print('All corruptions complete.')

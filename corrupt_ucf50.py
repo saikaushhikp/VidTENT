@@ -1,55 +1,10 @@
 #!/usr/bin/env python3
 """
-corrupt_ucf50.py
-================
-Generates per-corruption-type copies of the UCF50 dataset.
+Generate corrupted UCF50 datasets.
 
-For each requested corruption type  c  an output tree is created:
-
-    datasets/UCF50_<c>/
-        <ClassName>/
-            <original_video_name>.avi   ← selectively corrupted version
-
-Corruption is applied *per-frame* as a Bernoulli draw:
-    with probability  p  (default 0.65)  ->  apply corruption
-    with probability  1-p               ->  keep frame unchanged
-
-The final video is the time-concatenation of all processed frames.
-
-Supported corruption types
---------------------------
-  gauss     - additive Gaussian noise
-  pepper    - random black pixels (pepper noise)
-  salt      - random white pixels (salt noise)
-  shot      - Poisson (shot) noise
-  impulse   - combined salt-and-pepper (impulse noise)
-  defocus   - defocus blur (Gaussian disc approximation)
-  motion    - linear horizontal motion blur
-  zoom      - zoom / radial blur
-  jpeg      - JPEG compression artefacts
-  contrast  - reduced contrast
-  rain      - synthetic rain streaks
-  h265_abr  - H.265 ABR compression artefacts
-               (requires ffmpeg with libx265; falls back to heavy JPEG otherwise)
-
-Usage
------
-  # Single corruption
-  python corrupt_ucf50.py --corruption gauss
-
-  # Multiple corruptions
-  python corrupt_ucf50.py --corruption gauss motion rain
-
-  # All 12 corruption types
-  python corrupt_ucf50.py --corruption all
-
-  # Custom options
-  python corrupt_ucf50.py --corruption all --prob 0.65 --severity 2 --workers 4 --seed 0
-
-Dependencies
-------------
-  pip install opencv-python numpy tqdm
-  (ffmpeg with libx265 is optional but recommended for h265_abr)
+Modes:
+- Separate outputs per corruption type: datasets/UCF50_<type>/...
+- Mixed mode with one corruption per video and CSV mapping: datasets/UCF50_mixed_labels.csv
 """
 
 import argparse
